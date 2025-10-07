@@ -1,0 +1,21 @@
+{
+  // 🔧 Desactivar cualquier tipo de autoformato global
+  "editor.formatOnSave": false,
+  "editor.formatOnType": false,
+  "editor.formatOnPaste": false,
+
+  // 🔧 Evitar que se organicen automáticamente los imports
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "never",
+    "source.organizeImports": "never"
+  },
+
+  // 🔧 Desactivar específicamente para Dart/Flutter
+  "[dart]": {
+    "editor.formatOnSave": false,
+    "editor.formatOnType": false
+  },
+
+  // 🔧 (Opcional) Asegurar que no haya formateador predeterminado
+  "editor.defaultFormatter": null
+}
