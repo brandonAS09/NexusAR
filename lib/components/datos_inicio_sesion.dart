@@ -23,54 +23,65 @@ class _DatosInicioSesionState extends State<DatosInicioSesion> {
 
     final baseDecoration = InputDecoration(
       border: InputBorder.none,
-      enabledBorder: OutlineInputBorder(
+      enabledBorder: const OutlineInputBorder(
         borderRadius: borderRadius,
         borderSide: BorderSide.none,
       ),
-      focusedBorder: OutlineInputBorder(
+      focusedBorder: const OutlineInputBorder(
         borderRadius: borderRadius,
         borderSide: BorderSide.none,
       ),
       filled: true,
       fillColor: AppColors.fieldTextColor,
       contentPadding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 15.0),
-      hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
+      hintStyle: const TextStyle(color: Colors.white70, fontSize: 16),
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-      child: Column(
-        children: [
-          // Campo de correo
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: TextField(
-              decoration: baseDecoration.copyWith(
-                hintText: "Ingresa tu correo",
-              ),
-              style: const TextStyle(color: Colors.white),
+    return Column(
+      children: [
+        // Campo de correo
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: TextField(
+            decoration: baseDecoration.copyWith(
+              hintText: "Correo Electrónico",
             ),
+            style: const TextStyle(color: Colors.white),
           ),
-          // Campo de contraseña
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: TextField(
-              obscureText: !_passwordVisible,
-              decoration: baseDecoration.copyWith(
-                hintText: "Ingresa tu contraseña",
-                suffixIcon: IconButton(
+        ),
+        const SizedBox(height: 8),
+        // Campo de contraseña
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  obscureText: !_passwordVisible,
+                  decoration: baseDecoration.copyWith(
+                    hintText: "Contraseña",
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(left: 10.0),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                   icon: Icon(
-                    _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                    _passwordVisible ? Icons.visibility_off : Icons.visibility,
                     color: Colors.black,
+                    size: 28,
                   ),
                   onPressed: _togglePasswordVisibility,
                 ),
               ),
-              style: const TextStyle(color: Colors.white),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
