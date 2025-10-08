@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nexus_ar/components/datos_inicio_sesion.dart';
+import 'package:nexus_ar/screens/inicio_sesion.dart';
+import 'core/app_colors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,6 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: Scaffold(
+        backgroundColor: AppColors.backgroundColor,
         body: InicioSesion(),
       )
     );
