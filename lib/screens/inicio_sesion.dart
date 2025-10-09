@@ -13,25 +13,55 @@ class InicioSesion extends StatefulWidget {
 }
 
 class _InicioSesionState extends State<InicioSesion> {
-  bool _mostrarError = false;
-  final String _mensajeError =
-      "El correo o la contraseña son incorrectos. Por favor intentelo de nuevo.";
+  String? _errorActual;
+  static const String _msgVacioCorreo =
+      "El campo de correo electronico se encuentra vacio. Por favor intentelo de nuevo.";
+  static const String _msgVacioContrasena =
+      "El campo de la contraseña se encuentra vacio. Por favor intentelo de nuevo.";
+  static const String _msgNoInstitucional =
+      "El correo electronico debe ser institucional (uabc.edu.mx). Por favor intentelo de nuevo.";
+  static const String _msgNoRegistrado =
+      "Este correo electronico no se encuentra registrado.";
+  static const String _msgContrasenaIncorrecta =
+      "La contraseña es incorrecta. Por favor intentelo de nuevo.";
 
   void _simularLogin() {
     setState(() {
-      _mostrarError = true;
+      _errorActual = null;
+
+      final int modulo = DateTime.now().second % 5;
+
+      switch (modulo) {
+        case 0:
+          _errorActual = _msgVacioCorreo;
+          break;
+        case 1:
+          _errorActual = _msgVacioContrasena;
+          break;
+        case 2:
+          _errorActual = _msgNoInstitucional;
+          break;
+        case 3:
+          _errorActual = _msgNoRegistrado;
+          break;
+        case 4:
+          _errorActual = _msgContrasenaIncorrecta;
+          break;
+      }
     });
   }
 
   void _goToRegistro() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const RegistroScreen())
+      MaterialPageRoute(builder: (context) => const RegistroScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool hayError = _errorActual != null;
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 50),
@@ -40,7 +70,8 @@ class _InicioSesionState extends State<InicioSesion> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 40),
-            // Texto de la parte de arriba
+
+            // Titulo
             const Text(
               "INICIAR SESION",
               style: TextStyle(
@@ -50,22 +81,25 @@ class _InicioSesionState extends State<InicioSesion> {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 50),
+
+            const SizedBox(height: 50),
+
             // Campos de texto
             const DatosInicioSesion(),
-            if (_mostrarError) AvisoError(mensaje: _mensajeError),
 
-            if (!_mostrarError)
-              const SizedBox(height: 150),
+            if (hayError) AvisoError(mensaje: _errorActual!),
 
-            // Boton ingresar
+            if (!hayError) const SizedBox(height: 150),
+
+            SizedBox(height: 100,),
+            // boton ingresar
             BotonInicioSesion(texto: "Ingresar", onPressed: _simularLogin),
             const SizedBox(height: 30),
 
             const Divider(color: Colors.white, thickness: 1),
             const SizedBox(height: 15),
 
-            // Enlace registrarse
+            // enlace registrarse
             EnlaceTextoIs(
               textoPrincipal: "No tienes cuenta?",
               textoEnlace: "Registrate aquí",

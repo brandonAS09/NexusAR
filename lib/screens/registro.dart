@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:nexus_ar/components/boton_inicio_sesion.dart';
-import 'package:nexus_ar/components/campo_correo_registro.dart';
 import 'package:nexus_ar/components/requisitos_contra.dart';
 import 'package:nexus_ar/components/aviso_error.dart';
 import 'package:nexus_ar/core/app_colors.dart';
@@ -13,52 +12,49 @@ class RegistroScreen extends StatefulWidget {
 }
 
 class _RegistroScreenState extends State<RegistroScreen> {
-  bool _errorCorreoYaExiste = false;
-  bool _errorContrasenaNoCoincide = false;
-  bool _errorContrasenaNoCumpleRequisitos = false;
-  bool _passwordVisible1 = false;
-  bool _passwordVisible2 = false;
+  String? _errorCorreo;
+  String? _errorContrasena;
+  bool _passwordVisible = false; 
+  static const String _msgVacio = "Este campo no puede estar vacío";
+  static const String _msgNoInstitucional = "El correo debe ser institucional (uabc.edu.mx)";
+  static const String _msgNoCumpleRequisitos = "La contraseña no cumple con los requisitos";
+  static const String _msgCorreoYaExiste = "El correo ya se encuentra registrado";
 
-  void _togglePasswordVisibility1() {
+
+  void _togglePasswordVisibility() {
     setState(() {
-      _passwordVisible1 = !_passwordVisible1;
+      _passwordVisible = !_passwordVisible;
     });
   }
 
-  void _togglePasswordVisibility2() {
-    setState(() {
-      _passwordVisible2 = !_passwordVisible2;
-    });
-  }
-
-  // SIMULACIÓN DE REGISTRO Y ACTIVACIÓN DE ERRORES
   void _simularCrearCuenta() {
     setState(() {
-      _errorCorreoYaExiste = false;
-      _errorContrasenaNoCoincide = false;
-      _errorContrasenaNoCumpleRequisitos = false;
+      _errorCorreo = null;
+      _errorContrasena = null;
     });
 
-    // Esto simula que el backend regresa diferentes tipos de fallos.
-    if (DateTime.now().second % 3 == 0) {
-      // Error: Correo ya existe
-      setState(() {
-        _errorCorreoYaExiste = true;
-      });
-    } else if (DateTime.now().second % 3 == 1) {
-      // Error: Contraseñas no coinciden
-      setState(() {
-        _errorContrasenaNoCoincide = true;
-      });
-    } else {
-      // Error: Contraseña no cumple requisitos
-      setState(() {
-        _errorContrasenaNoCumpleRequisitos = true;
-      });
+    final int modulo = DateTime.now().second % 5;
+
+    switch (modulo) {
+      case 0: // Error 1: Campo Correo Vacío
+        setState(() { _errorCorreo = _msgVacio; });
+        break;
+      case 1: // Error 2: Correo No Institucional
+        setState(() { _errorCorreo = _msgNoInstitucional; });
+        break;
+      case 2: // Error 3: Correo ya registrado
+        setState(() { _errorCorreo = _msgCorreoYaExiste; }); 
+        break;
+      case 3: // Error 4: Contraseña Vacía 
+        setState(() { _errorContrasena = _msgVacio; });
+        break;
+      case 4: // Error 5: Contraseña no cumple requisitos
+        setState(() { _errorContrasena = _msgNoCumpleRequisitos; }); 
+        break;
     }
   }
 
-  Widget _buildNormalField(String hintText) {
+  Widget _buildPasswordField() {
     const borderRadius = BorderRadius.all(Radius.circular(10.0));
 
     final baseDecoration = InputDecoration(
@@ -80,24 +76,50 @@ class _RegistroScreenState extends State<RegistroScreen> {
       hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
     );
 
+    final bool mostrarErrorContrasena = _errorContrasena != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        obscureText: false,
-        decoration: baseDecoration.copyWith(hintText: hintText),
-        style: const TextStyle(color: Colors.white),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  obscureText: !_passwordVisible,
+                  decoration: baseDecoration.copyWith(
+                    hintText: "Contraseña", 
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _passwordVisible ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.black, 
+                        size: 28,
+                      ),
+                      onPressed: _togglePasswordVisibility,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          if (mostrarErrorContrasena)
+            AvisoError(mensaje: _errorContrasena!),
+        ],
       ),
     );
   }
-
-  Widget _buildPasswordField(
-    String hintText,
-    bool isVisible,
-    VoidCallback toggleVisibility,
-  ) {
+  InputDecoration _buildInputDecoration({
+    required String hintText,
+    required bool isError,
+    String? errorMessage,
+  }) {
     const borderRadius = BorderRadius.all(Radius.circular(10.0));
-
-    final baseDecoration = InputDecoration(
+    Color fillColor = AppColors.fieldTextColor;
+    
+    return InputDecoration(
       border: InputBorder.none,
       enabledBorder: const OutlineInputBorder(
         borderRadius: borderRadius,
@@ -108,52 +130,26 @@ class _RegistroScreenState extends State<RegistroScreen> {
         borderSide: BorderSide.none,
       ),
       filled: true,
-      fillColor: AppColors.fieldTextColor,
+      fillColor: fillColor,
       contentPadding: const EdgeInsets.symmetric(
         vertical: 20.0,
         horizontal: 15.0,
       ),
+      hintText: hintText,
       hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: TextField(
-              obscureText: !isVisible,
-              decoration: baseDecoration.copyWith(hintText: hintText),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(left: 10.0),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                isVisible ? Icons.visibility_off : Icons.visibility,
-                color: Colors.black,
-                size: 28,
-              ),
-              onPressed: toggleVisibility,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool hayErrorCorreo = _errorCorreo != null;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black), 
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -175,61 +171,34 @@ class _RegistroScreenState extends State<RegistroScreen> {
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 50), 
 
-              // Usuario
-              _buildNormalField("Nombre de Usuario"),
-
-              const SizedBox(height: 15),
-
-              // correo
-              const CampoCorreoRegistro(),
-
-              // ERROR: Correo ya registrado
-              if (_errorCorreoYaExiste)
-                const AvisoError(
-                  mensaje:
-                      "El correo que ingresaste ya está registrado. Intenta con otro.",
+              // Correo Electrónico
+              TextField(
+                keyboardType: TextInputType.emailAddress,
+                decoration: _buildInputDecoration(
+                  hintText: "Correo Electrónico",
+                  isError: hayErrorCorreo,
+                  errorMessage: _errorCorreo,
                 ),
+                style: const TextStyle(color: Colors.white),
+              ),
+              
+              // Aviso de error del correo
+              if (hayErrorCorreo)
+                AvisoError(mensaje: _errorCorreo!),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 25), 
 
               // texto de requisitos contra
               const RequisitosContra(),
 
               // ingresar contra
-              _buildPasswordField(
-                "Contraseña",
-                _passwordVisible1,
-                _togglePasswordVisibility1,
-              ),
-
-              // repetir contra
-              _buildPasswordField(
-                "Repetir Contraseña",
-                _passwordVisible2,
-                _togglePasswordVisibility2,
-              ),
-
-              // ERROR: Contraseña no cumple con requisitos
-              if (_errorContrasenaNoCumpleRequisitos)
-                const AvisoError(
-                  mensaje:
-                      "La contraseña no cumple con los requerimientos. Intenta de nuevo.",
-                ),
-
-              if (!_errorContrasenaNoCumpleRequisitos)
-                const SizedBox(height: 15),
-
-              // ERROR: Contraseñas no coinciden
-              if (_errorContrasenaNoCoincide)
-                const AvisoError(
-                  mensaje: "La contraseña no concuerda. Intenta de nuevo.",
-                ),
+              _buildPasswordField(), 
 
               const SizedBox(height: 40),
 
-              // linea
+              // linea divisoria
               const Divider(color: Colors.white, thickness: 1),
 
               const SizedBox(height: 30),
