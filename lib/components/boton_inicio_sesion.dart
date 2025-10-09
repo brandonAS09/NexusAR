@@ -26,7 +26,7 @@ class BotonInicioSesion extends StatelessWidget{
       child: Text(
         texto,
         style: const TextStyle(
-          fontSize: 18,
+          fontSize: 24,
           fontWeight: FontWeight.bold,
           color: Colors.white
         ),

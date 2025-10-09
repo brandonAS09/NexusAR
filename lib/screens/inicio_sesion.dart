@@ -3,6 +3,7 @@ import 'package:nexus_ar/components/aviso_error.dart';
 import 'package:nexus_ar/components/boton_inicio_sesion.dart';
 import 'package:nexus_ar/components/datos_inicio_sesion.dart';
 import 'package:nexus_ar/components/enlace_texto_is.dart';
+import 'package:nexus_ar/screens/registro.dart';
 
 class InicioSesion extends StatefulWidget {
   const InicioSesion({super.key});
@@ -20,6 +21,13 @@ class _InicioSesionState extends State<InicioSesion> {
     setState(() {
       _mostrarError = true;
     });
+  }
+
+  void _goToRegistro() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegistroScreen())
+    );
   }
 
   @override
@@ -61,7 +69,7 @@ class _InicioSesionState extends State<InicioSesion> {
             EnlaceTextoIs(
               textoPrincipal: "No tienes cuenta?",
               textoEnlace: "Registrate aquí",
-              onTap: () {},
+              onTap: _goToRegistro,
               alineacion: MainAxisAlignment.center,
             ),
             const SizedBox(height: 50),
