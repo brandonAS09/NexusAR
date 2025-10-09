@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:nexus_ar/core/app_colors.dart';
+import 'package:nexus_ar/components/boton_inicio_sesion.dart';
+import 'package:nexus_ar/components/requisitos_contra.dart';
+import 'package:nexus_ar/components/aviso_error.dart';
 import 'package:nexus_ar/services/api_service.dart';
 
 class RegistroScreen extends StatefulWidget {
-  const RegistroScreen({Key? key}) : super(key: key);
+  const RegistroScreen({super.key});
 
   @override
   State<RegistroScreen> createState() => _RegistroScreenState();
@@ -14,27 +18,30 @@ class _RegistroScreenState extends State<RegistroScreen> {
 
   final ApiService _apiService = ApiService();
 
-  bool _isLoading = false;
   String? _errorCorreo;
   String? _errorContrasena;
+  bool _passwordVisible = false;
+  bool _isLoading = false;
 
-  // Expresiones regulares
-  final RegExp _correoUabcRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@uabc\.edu\.mx$');
+  // Mensajes
+  static const String _msgVacio = "Este campo no puede estar vacío";
+  static const String _msgNoInstitucional =
+      "El correo debe ser institucional (uabc.edu.mx)";
+  static const String _msgNoCumpleRequisitos =
+      "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número";
+  static const String _msgCorreoYaExiste =
+      "El correo ya se encuentra registrado";
+
+  // Regex
+  final RegExp _correoUabcRegex =
+      RegExp(r'^[a-zA-Z0-9._%+-]+@uabc\.edu\.mx$');
   final RegExp _passwordRegex =
       RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$');
 
-  // Mensajes de error
-  final String _msgVacio = 'Este campo no puede estar vacío';
-  final String _msgNoInstitucional = 'Usa un correo institucional de la UABC';
-  final String _msgNoCumpleRequisitos =
-      'La contraseña debe tener mínimo 8 caracteres, una mayúscula y un número';
-  final String _msgCorreoYaExiste = 'El correo ya está registrado';
-
-  @override
-  void dispose() {
-    _correoController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  void _togglePasswordVisibility() {
+    setState(() {
+      _passwordVisible = !_passwordVisible;
+    });
   }
 
   Future<void> _registrarUsuario() async {
@@ -46,6 +53,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
     final correo = _correoController.text.trim();
     final password = _passwordController.text.trim();
 
+    // Validaciones locales
     if (correo.isEmpty) {
       setState(() => _errorCorreo = _msgVacio);
       return;
@@ -71,7 +79,8 @@ class _RegistroScreenState extends State<RegistroScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(respuesta['mensaje'] ?? 'Usuario registrado exitosamente 🎉'),
+          content:
+              Text(respuesta['mensaje'] ?? 'Usuario registrado exitosamente 🎉'),
           backgroundColor: Colors.green,
         ),
       );
@@ -100,97 +109,124 @@ class _RegistroScreenState extends State<RegistroScreen> {
     }
   }
 
+  // Campo de contraseña (con icono de mostrar/ocultar)
+  Widget _buildPasswordField() {
+    const borderRadius = BorderRadius.all(Radius.circular(10.0));
+
+    final baseDecoration = InputDecoration(
+      border: InputBorder.none,
+      enabledBorder: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide.none,
+      ),
+      filled: true,
+      fillColor: AppColors.fieldTextColor,
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 20.0, horizontal: 15.0),
+      hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
+    );
+
+    final bool mostrarError = _errorContrasena != null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _passwordController,
+            obscureText: !_passwordVisible,
+            decoration: baseDecoration.copyWith(
+              hintText: "Contraseña",
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _passwordVisible ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.black,
+                  size: 28,
+                ),
+                onPressed: _togglePasswordVisibility,
+              ),
+            ),
+            style: const TextStyle(color: Colors.white),
+          ),
+          if (mostrarError) AvisoError(mensaje: _errorContrasena!),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String hintText) {
+    const borderRadius = BorderRadius.all(Radius.circular(10.0));
+    return InputDecoration(
+      border: InputBorder.none,
+      enabledBorder: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide.none,
+      ),
+      filled: true,
+      fillColor: AppColors.fieldTextColor,
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 20.0, horizontal: 15.0),
+      hintText: hintText,
+      hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool hayErrorCorreo = _errorCorreo != null;
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const Text(
-                  "Crear cuenta",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+      backgroundColor: AppColors.backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 50.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              const Text(
+                "REGISTRO",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 40),
-
-                // Campo de correo
-                TextField(
-                  controller: _correoController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Correo institucional',
-                    labelStyle: const TextStyle(color: Colors.white),
-                    errorText: _errorCorreo,
-                    filled: true,
-                    fillColor: Colors.grey[850],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 20),
-
-                // Campo de contraseña
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    labelStyle: const TextStyle(color: Colors.white),
-                    errorText: _errorContrasena,
-                    filled: true,
-                    fillColor: Colors.grey[850],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 30),
-
-                // Botón de registro
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _registrarUsuario,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.greenAccent[400],
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.black)
-                        : const Text(
-                            'Registrarse',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "¿Ya tienes una cuenta? Inicia sesión",
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-              ],
-            ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 50),
+              TextField(
+                controller: _correoController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: _buildInputDecoration("Correo Electrónico"),
+                style: const TextStyle(color: Colors.white),
+              ),
+              if (hayErrorCorreo) AvisoError(mensaje: _errorCorreo!),
+              const SizedBox(height: 25),
+              const RequisitosContra(),
+              _buildPasswordField(),
+              const SizedBox(height: 40),
+              const Divider(color: Colors.white, thickness: 1),
+              const SizedBox(height: 30),
+              BotonInicioSesion(
+                texto: _isLoading ? "Creando..." : "Crear Cuenta",
+                onPressed: _isLoading ? () {} : _registrarUsuario,
+              ),
+              const SizedBox(height: 50),
+            ],
           ),
         ),
       ),
