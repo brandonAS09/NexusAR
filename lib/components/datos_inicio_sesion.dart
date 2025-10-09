@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:nexus_ar/core/app_colors.dart';
 
 class DatosInicioSesion extends StatefulWidget {
-  const DatosInicioSesion({super.key});
+  // ⭐️ ACEPTA LOS CONTROLADORES COMO PROPIEDADES FINALES
+  final TextEditingController correoController;
+  final TextEditingController passwordController;
+
+  const DatosInicioSesion({
+    super.key,
+    required this.correoController,
+    required this.passwordController,
+  });
 
   @override
   State<DatosInicioSesion> createState() => _DatosInicioSesionState();
@@ -43,6 +51,9 @@ class _DatosInicioSesionState extends State<DatosInicioSesion> {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: TextField(
+            // ⭐️ ASIGNACIÓN DEL CONTROLADOR DE CORREO
+            controller: widget.correoController,
+            keyboardType: TextInputType.emailAddress,
             decoration: baseDecoration.copyWith(
               hintText: "Correo Electrónico",
             ),
@@ -58,6 +69,8 @@ class _DatosInicioSesionState extends State<DatosInicioSesion> {
             children: [
               Expanded(
                 child: TextField(
+                  // ⭐️ ASIGNACIÓN DEL CONTROLADOR DE CONTRASEÑA
+                  controller: widget.passwordController,
                   obscureText: !_passwordVisible,
                   decoration: baseDecoration.copyWith(
                     hintText: "Contraseña",
@@ -72,7 +85,8 @@ class _DatosInicioSesionState extends State<DatosInicioSesion> {
                   constraints: const BoxConstraints(),
                   icon: Icon(
                     _passwordVisible ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.black,
+                    // Se usa Colors.white para que se vea en tu fondo oscuro
+                    color: Colors.white, 
                     size: 28,
                   ),
                   onPressed: _togglePasswordVisibility,

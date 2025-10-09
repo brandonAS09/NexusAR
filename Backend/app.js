@@ -1,21 +1,14 @@
 const express = require("express");
+const cors = require("cors");
 const app = express();
-const PORT = 3000;
-const usuariosRoutes = require("./routes/usuarios"); // importa el archivo de rutas
 
+app.use(cors());
 app.use(express.json());
 
-// Ruta de prueba
-app.get("/", (req, res) => {
-  res.send("Servidor Node.js conectado con MariaDB");
-});
+const authRoutes = require("./routes/auth");
+app.use("/auth", authRoutes);
 
-// Usa las rutas de usuarios
-app.use("/usuarios", usuariosRoutes);
-
-app.use("/auth", require("./routes/auth")); // Asegúrate de importar las rutas de auth
-
-// Inicia el servidor
+const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });

@@ -5,7 +5,7 @@ const db = mysql.createConnection({
     port: "3306",
     user: "root",
     password: "12345",
-    database: "Usuarios", // ✅ base de datos correcta
+    database: "Usuarios", // nombre de la base de datos, no de la tabla
 });
 
 db.connect((err) => {
