@@ -3,8 +3,8 @@ const mysql = require("mysql2");
 const db = mysql.createConnection({
     host: "remot.allan3235.com",
     port: "3306",
-    user: "root",
-    password: "12345",
+    user: "teds",
+    password: "123456789",
     database: "Usuarios", // nombre de la base de datos, no de la tabla
 });
 

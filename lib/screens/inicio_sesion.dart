@@ -5,7 +5,8 @@ import 'package:nexus_ar/components/datos_inicio_sesion.dart';
 import 'package:nexus_ar/components/enlace_texto_is.dart';
 import 'package:nexus_ar/core/app_colors.dart';
 import 'package:nexus_ar/screens/registro.dart';
-import 'package:nexus_ar/services/api_service.dart'; // ⭐️ IMPORTACIÓN DEL SERVICIO API
+import 'package:nexus_ar/screens/menu.dart';
+import 'package:nexus_ar/services/api_service.dart';
 
 class InicioSesion extends StatefulWidget {
   const InicioSesion({super.key});
@@ -15,13 +16,13 @@ class InicioSesion extends StatefulWidget {
 }
 
 class _InicioSesionState extends State<InicioSesion> {
-  // ⭐️ CONTROLADORES DE TEXTO: OBTENDRÁN LOS VALORES DEL FORMULARIO
+  // Controladores de texto: obtendrán los valores del formulario
   final _correoController = TextEditingController();
   final _passwordController = TextEditingController();
 
   String? _errorActual;
   bool _isLoading = false;
-  
+
   // Instancia del servicio API
   final _apiService = ApiService();
 
@@ -29,11 +30,13 @@ class _InicioSesionState extends State<InicioSesion> {
   final RegExp _correoUabcRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@uabc\.edu\.mx$");
 
   // Mensajes de error específicos para el cliente (validación local)
-  static const String _msgVacioCorreo = "El campo de correo electrónico se encuentra vacío.";
-  static const String _msgVacioContrasena = "El campo de la contraseña se encuentra vacío.";
-  static const String _msgNoInstitucional = "El correo debe ser institucional (uabc.edu.mx).";
-  
-  // ⭐️ LIMPIEZA DE CONTROLADORES AL DESTRUIR EL WIDGET
+  static const String _msgVacioCorreo =
+      "Por favor, ingresa tu correo electrónico.";
+  static const String _msgVacioContrasena = "Por favor, ingresa tu contraseña.";
+  static const String _msgNoInstitucional =
+      "El correo electrónico debe ser institucional (@uabc.edu.mx).";
+
+  // Limpieza de controladores al destruir el widget
   @override
   void dispose() {
     _correoController.dispose();
@@ -51,7 +54,7 @@ class _InicioSesionState extends State<InicioSesion> {
     final correo = _correoController.text.trim();
     final password = _passwordController.text;
 
-    // 2. VALIDACIÓN DE CLIENTE (Campos vacíos)
+    // 2. Validación de cliente (campos vacíos)
     if (correo.isEmpty) {
       setState(() {
         _errorActual = _msgVacioCorreo;
@@ -67,9 +70,8 @@ class _InicioSesionState extends State<InicioSesion> {
       });
       return;
     }
-    
-    // 3. VALIDACIÓN DE CLIENTE (Correo institucional UABC)
-    // Esto se hace en el backend, pero es bueno validarlo aquí también para UX
+
+    // 3. Validación de correo institucional UABC
     if (!_correoUabcRegex.hasMatch(correo)) {
       setState(() {
         _errorActual = _msgNoInstitucional;
@@ -78,30 +80,48 @@ class _InicioSesionState extends State<InicioSesion> {
       return;
     }
 
-    // 4. LLAMADA AL BACKEND
+    // 4. Llamada al backend
     try {
       final resultado = await _apiService.login(correo, password);
 
-      // ÉXITO: El backend devolvió 200.
+      // Éxito: El backend devolvió 200
       print("Login Exitoso: Usuario ${resultado['usuario']['nombre']}");
-      
+
       // Mostrar un mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('¡Bienvenido, ${resultado['usuario']['nombre']}!')),
+        SnackBar(
+          content: Text('¡Bienvenido, ${resultado['usuario']['nombre']}!'),
+        ),
       );
-      
-      // Aquí iría la navegación a la pantalla principal
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
 
+      // 🚀 Navegación exitosa al menú
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MenuScreen()),
+      );
     } on Exception catch (e) {
-      // 5. MANEJO DE ERRORES DEL BACKEND/CONEXIÓN
-      // Limpiamos el prefijo "Exception: " si existe.
-      final errorMessage = e.toString().replaceFirst('Exception: ', '');
-      
+      String errorMessage = e.toString();
+
+      // 1. Eliminar prefijos del sistema
+      errorMessage = errorMessage
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('Exception', '')
+          .trim();
+
+      // 2. Eliminar prefijo del servidor si existe
+      const serverPrefix = "Fallo al conectar con el servidor. :";
+      if (errorMessage.startsWith(serverPrefix)) {
+        errorMessage = errorMessage.replaceFirst(serverPrefix, '').trim();
+      }
+
+      // 3. Normalizar mensaje si contiene "contraseña incorrecta"
+      if (errorMessage.toLowerCase().contains('contraseña incorrecta')) {
+        errorMessage = 'Contraseña incorrecta';
+      }
+
       setState(() {
         _errorActual = errorMessage;
       });
-
     } finally {
       // 6. Finalizar carga
       setState(() {
@@ -132,9 +152,9 @@ class _InicioSesionState extends State<InicioSesion> {
             children: [
               const SizedBox(height: 40),
 
-              // Titulo
+              // Título
               const Text(
-                "INICIAR SESION",
+                "INICIAR SESIÓN",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 40,
@@ -145,36 +165,37 @@ class _InicioSesionState extends State<InicioSesion> {
 
               const SizedBox(height: 50),
 
-              // ⭐️ CAMPOS DE TEXTO: Pasamos los controladores
+              // Campos de texto
               DatosInicioSesion(
                 correoController: _correoController,
                 passwordController: _passwordController,
               ),
 
-              // Aviso de error global
+              // Aviso de error
               if (hayError) AvisoError(mensaje: _errorActual!),
 
-              // Espacio condicional (ajustado para que el botón se vea centrado verticalmente)
+              // Espaciado
               SizedBox(height: hayError ? 40 : 120),
 
-              // boton ingresar
+              // Botón ingresar
               BotonInicioSesion(
-                // Mostramos estado de carga
                 texto: _isLoading ? "INGRESANDO..." : "INGRESAR",
-                onPressed: _isLoading ? () {} : _iniciarSesion, // Deshabilitar si está cargando
+                onPressed: _isLoading ? () {} : _iniciarSesion,
               ),
+
               const SizedBox(height: 30),
 
               const Divider(color: Colors.white, thickness: 1),
               const SizedBox(height: 15),
 
-              // enlace registrarse
+              // Enlace registro
               EnlaceTextoIs(
                 textoPrincipal: "¿No tienes cuenta?",
                 textoEnlace: "Regístrate aquí",
                 onTap: _goToRegistro,
                 alineacion: MainAxisAlignment.center,
               ),
+
               const SizedBox(height: 50),
             ],
           ),

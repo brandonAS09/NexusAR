@@ -93,7 +93,7 @@ router.post("/login", async (req, res) => {
         // Comparar contraseñas
         const igual = await bcrypt.compare(password, usuario.Contraseña);
         if (!igual) {
-            return res.status(401).json({ error: "Contraseña incorrecta" });
+            return res.status(401).json({ error: "La contraseña incorrecta" });
         }
 
         // Login exitoso

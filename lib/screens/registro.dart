@@ -26,11 +26,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
   // Mensajes
   static const String _msgVacio = "Este campo no puede estar vacío";
   static const String _msgNoInstitucional =
-      "El correo debe ser institucional (uabc.edu.mx)";
+      "El correo electrónico debe ser institucional (@uabc.edu.mx).";
   static const String _msgNoCumpleRequisitos =
       "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número";
   static const String _msgCorreoYaExiste =
-      "El correo ya se encuentra registrado";
+      "Este correo electrónico ya se encuentra registrado.";
 
   // Regex
   final RegExp _correoUabcRegex =
