@@ -85,7 +85,7 @@ router.post("/login", async (req, res) => {
         }
 
         if (results.length === 0) {
-            return res.status(401).json({ error: "El correo no ha sido encontrado" });
+            return res.status(401).json({ error: "Este correo electrónico no está registrado." });
         }
 
         const usuario = results[0];

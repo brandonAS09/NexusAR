@@ -116,7 +116,7 @@ class _InicioSesionState extends State<InicioSesion> {
 
       // 3. Normalizar mensaje si contiene "contraseña incorrecta"
       if (errorMessage.toLowerCase().contains('contraseña incorrecta')) {
-        errorMessage = 'Contraseña incorrecta';
+        errorMessage = 'La contraseña es incorrecta.';
       }
 
       setState(() {
