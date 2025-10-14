@@ -17,7 +17,7 @@ class CustomBottomNavBar extends StatelessWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final iconColor = isSelected ? Colors.white : Colors.white70;
+    final iconColor = isSelected ? Colors.black : Colors.black45; 
     final iconSize = isSelected ? 35.0 : 32.0;
 
     return InkWell(
@@ -31,47 +31,41 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: 40, right: 40, bottom: 30),
-      decoration: BoxDecoration(
-        color: AppColors.botonInicioSesion,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: const [
-          BoxShadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 5)),
-        ],
-      ),
-      // Estructura de navegacion inferior
-      child: BottomAppBar(
-        color: Colors.transparent,
-        elevation: 0,
+    return IgnorePointer(
+      ignoring: false,
+      child: Container(
+        margin: const EdgeInsets.only(left: 40, right: 40, bottom: 100),
+        height: 60,
+        decoration: BoxDecoration(
+          color: AppColors.botonInicioSesion,
+          boxShadow: const [
+            BoxShadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 5)),
+          ],
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _buildBottomBarIcon(
-              icon: Icons.location_on,
+              icon: Icons.location_on_outlined,
               index: 0,
               isSelected: selectedIndex == 0,
               onTap: () => onItemSelected(0),
             ),
-
-            // 1: Logros
             _buildBottomBarIcon(
-              icon: Icons.emoji_events,
+              icon: Icons.emoji_events_outlined,
               index: 1,
               isSelected: selectedIndex == 1,
               onTap: () => onItemSelected(1),
             ),
-
-            // 2: Notificaciones
             _buildBottomBarIcon(
-              icon: Icons.notifications,
+              icon: Icons.notifications_none,
               index: 2,
               isSelected: selectedIndex == 2,
               onTap: () => onItemSelected(2),
             ),
-            // 3: Perfil
             _buildBottomBarIcon(
-              icon: Icons.person,
+              icon: Icons.account_circle_outlined,
               index: 3,
               isSelected: selectedIndex == 3,
               onTap: () => onItemSelected(3),
