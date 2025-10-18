@@ -6,6 +6,7 @@ import 'package:nexus_ar/temp/conten_page.dart';
 import 'package:nexus_ar/screens/help.dart';
 import 'package:nexus_ar/components/logout_dialog.dart';
 import 'package:nexus_ar/screens/inicio_sesion.dart';
+import 'package:nexus_ar/screens/mi_perfil.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -18,14 +19,21 @@ class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
   bool _isInitialLoad = true;
 
+  // PÁGINAS ESTATICAS: El orden debe ser: [LOGROS (index 1), NOTIFICACIONES (index 2)]
   final List<Widget> _staticPages = [
-    const Placeholder(),
-    const ContentPage(title: 'LOGROS'),
-    const ContentPage(title: 'NOTIFICACIONES'),
-    const ContentPage(title: 'MI PERFIL'),
+    const ContentPage(title: 'LOGROS'),       // ⬅️ Este es el INDEX 1
+    const ContentPage(title: 'NOTIFICACIONES'),// ⬅️ Este es el INDEX 2
   ];
-
+  
   void _onItemTapped(int index) {
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MiPerfilScreen()),
+      );
+      return;
+    }
+
     setState(() {
       _selectedIndex = index;
       _isInitialLoad = false;
@@ -66,8 +74,8 @@ class _MenuScreenState extends State<MenuScreen> {
         : 'UBICACION';
 
     final List<Widget> pages = [
-      ContentPage(title: page0Title),
-      ..._staticPages.sublist(1),
+      ContentPage(title: page0Title), // 0: UBICACION
+      ..._staticPages, // 1 y 2: LOGROS y NOTIFICACIONES
     ];
 
     return Scaffold(
@@ -75,20 +83,23 @@ class _MenuScreenState extends State<MenuScreen> {
       extendBody: true,
       extendBodyBehindAppBar: true,
 
-      // 1. APP BAR
+      // 1. Barra superior
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70.0),
         child: CustomAppBar(
           onHelpPressed: _navigateToHelpScreen,
-          onLogoutPressed: _showLogoutDialog, // logout
+          onLogoutPressed: _showLogoutDialog,
           backButton: false,
         ),
       ),
 
-      // 2. BODY
-      body: IndexedStack(index: _selectedIndex, children: pages),
+      // 2. Contenido
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: pages,
+      ),
 
-      // 3. BOTTOM NAVIGATION BAR
+      // 3. Barra inferior
       bottomNavigationBar: SizedBox(
         height: 160.0,
         child: CustomBottomNavBar(

@@ -7,6 +7,7 @@ import 'package:nexus_ar/core/app_colors.dart';
 import 'package:nexus_ar/screens/registro.dart';
 import 'package:nexus_ar/screens/menu.dart';
 import 'package:nexus_ar/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class InicioSesion extends StatefulWidget {
   const InicioSesion({super.key});
@@ -93,6 +94,9 @@ class _InicioSesionState extends State<InicioSesion> {
           content: Text('¡Bienvenido, ${resultado['usuario']['nombre']}!'),
         ),
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('correo_usuario', resultado['usuario']['correo']);
 
       // 🚀 Navegación exitosa al menú
       Navigator.pushReplacement(
