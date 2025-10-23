@@ -7,6 +7,7 @@ import 'package:nexus_ar/screens/help.dart';
 import 'package:nexus_ar/components/logout_dialog.dart';
 import 'package:nexus_ar/screens/inicio_sesion.dart';
 import 'package:nexus_ar/screens/mi_perfil.dart';
+import 'package:nexus_ar/screens/map_screen.dart'; // ✅ Import del mapa
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -19,13 +20,24 @@ class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
   bool _isInitialLoad = true;
 
-  // PÁGINAS ESTATICAS: El orden debe ser: [LOGROS (index 1), NOTIFICACIONES (index 2)]
+  // PÁGINAS ESTÁTICAS: El orden debe ser: [LOGROS (index 1), NOTIFICACIONES (index 2)]
   final List<Widget> _staticPages = [
-    const ContentPage(title: 'LOGROS'),       // ⬅️ Este es el INDEX 1
-    const ContentPage(title: 'NOTIFICACIONES'),// ⬅️ Este es el INDEX 2
+    const ContentPage(title: 'LOGROS'),        // ⬅️ INDEX 1
+    const ContentPage(title: 'NOTIFICACIONES'), // ⬅️ INDEX 2
   ];
-  
+
+  // 🔹 Controlador de taps del menú inferior
   void _onItemTapped(int index) {
+    // ⬅️ Si toca “Ubicación”, ir a MapScreen
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MapScreen()),
+      );
+      return;
+    }
+
+    // ⬅️ Si toca “Mi Perfil”, ir a pantalla de perfil
     if (index == 3) {
       Navigator.push(
         context,
@@ -34,12 +46,14 @@ class _MenuScreenState extends State<MenuScreen> {
       return;
     }
 
+    // ⬅️ Otros botones cambian el contenido dentro del menú
     setState(() {
       _selectedIndex = index;
       _isInitialLoad = false;
     });
   }
 
+  // 🔹 Navegar a pantalla de ayuda
   void _navigateToHelpScreen() async {
     final newIndex = await Navigator.push<int>(
       context,
@@ -55,6 +69,7 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
+  // 🔹 Mostrar diálogo de cierre de sesión
   void _showLogoutDialog() async {
     final bool? shouldLogout = await LogoutDialog.show(context);
 
@@ -71,11 +86,11 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget build(BuildContext context) {
     final String page0Title = (_selectedIndex == 0 && _isInitialLoad)
         ? 'Bienvenido a la Aplicación'
-        : 'UBICACION';
+        : 'UBICACIÓN';
 
     final List<Widget> pages = [
-      ContentPage(title: page0Title), // 0: UBICACION
-      ..._staticPages, // 1 y 2: LOGROS y NOTIFICACIONES
+      ContentPage(title: page0Title), // 0: UBICACIÓN (ya no visible, se reemplaza por MapScreen)
+      ..._staticPages, // 1: LOGROS, 2: NOTIFICACIONES
     ];
 
     return Scaffold(
@@ -83,7 +98,7 @@ class _MenuScreenState extends State<MenuScreen> {
       extendBody: true,
       extendBodyBehindAppBar: true,
 
-      // 1. Barra superior
+      // 1️⃣ Barra superior
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70.0),
         child: CustomAppBar(
@@ -93,13 +108,13 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       ),
 
-      // 2. Contenido
+      // 2️⃣ Contenido central
       body: IndexedStack(
         index: _selectedIndex,
         children: pages,
       ),
 
-      // 3. Barra inferior
+      // 3️⃣ Barra inferior
       bottomNavigationBar: SizedBox(
         height: 160.0,
         child: CustomBottomNavBar(
