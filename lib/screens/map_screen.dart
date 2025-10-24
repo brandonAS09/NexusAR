@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:nexus_ar/components/mapa_bar.dart';
 import 'package:nexus_ar/core/app_colors.dart';
-import 'package:nexus_ar/components/custom_app_bar.dart';
+import 'package:nexus_ar/components/rutas_boton.dart';
 import 'dart:ui' as ui;
 
 class MapScreen extends StatefulWidget {
@@ -21,15 +22,15 @@ class _MapScreenState extends State<MapScreen> {
     mapboxMap = map;
   }
 
-  void _startNavigation() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Iniciando navegación...')));
-  }
-
   void _startScanner() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Abriendo scanner de reconocimiento...')),
+    );
+  }
+
+  void _rutaSeleccionada(String ruta) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Mostrando $ruta')),
     );
   }
 
@@ -38,10 +39,18 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: ui.Size.fromHeight(70),
-        child: CustomAppBar(
+        child: MapAppBar(
           backButton: true,
-          onHelpPressed: null,
-          onLogoutPressed: null,
+          title: const Text(
+            'Mapa del Campus',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          centerTitle: true,
         ),
       ),
       body: Stack(
@@ -58,21 +67,22 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
+          //  Botones
           Positioned(
-            top: MediaQuery.of(context).padding.top + 80,
-            right: 12,
+            top: MediaQuery.of(context).padding.top,
+            right: 16,
             child: Column(
               children: [
                 _buildActionButton(
-                  icon: Icons.face_retouching_natural,
-                  color: AppColors.botonInicioSesion.withOpacity(0.95),
+                  icon: Icons.camera_alt_outlined,
+                  iconColor: Colors.black,
+                  iconSize: 50,
+                  color: AppColors.botonInicioSesion,
                   onPressed: _startScanner,
                 ),
-                const SizedBox(height: 12),
-                _buildNavigationButton(
-                  color: AppColors.botonInicioSesion.withOpacity(0.95),
-                  onPressed: _startNavigation,
-                ),
+                const SizedBox(height: 105),
+
+                RutasBoton(onRutaSeleccionada: _rutaSeleccionada),
               ],
             ),
           ),
@@ -83,35 +93,23 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget _buildActionButton({
     required IconData icon,
+    required Color iconColor,
+    required double iconSize,
     required Color color,
     required VoidCallback onPressed,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(10.0),
-        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+        ],
       ),
       child: IconButton(
-        icon: Icon(icon, color: Colors.white, size: 26),
+        icon: Icon(icon, color: iconColor, size: iconSize),
         onPressed: onPressed,
-      ),
-    );
-  }
-
-  Widget _buildNavigationButton({
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(10.0),
-        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.directions, color: Colors.white, size: 26),
-        onPressed: onPressed,
+        splashRadius: 28,
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nexus_ar/core/app_colors.dart';
 
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class MapAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(70.0);
 
@@ -9,9 +9,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onHelpPressed;
   final VoidCallback? onLogoutPressed;
   final Widget? title;
-  final bool centerTitle;
+  final bool centerTitle; 
 
-  const CustomAppBar({
+  const MapAppBar({
     super.key,
     this.backButton = false,
     this.onHelpPressed,
@@ -61,22 +61,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
 
-            // Boton izquierdo
+            // Boton regreso
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(
                 icon: Icon(leftIcon, size: 30, color: Colors.black),
                 onPressed: onLeftIconPressed,
-              ),
-            ),
-
-            // Boton derecho
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                icon: const Icon(Icons.help_outline,
-                    size: 30, color: Colors.black),
-                onPressed: onHelpPressed,
               ),
             ),
           ],
