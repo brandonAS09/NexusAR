@@ -6,6 +6,7 @@ import 'package:nexus_ar/components/rutas_boton.dart';
 import 'package:nexus_ar/services/ruta_service.dart';
 import 'dart:ui' as ui;
 
+/// Pantalla principal del mapa con la lógica para mostrar rutas desde la base de datos
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -15,13 +16,16 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   MapboxMap? mapboxMap;
+  PolylineAnnotationManager? polylineManager;
   final RutaService rutaService = RutaService();
 
+  // Coordenadas del campus
   final double _campusLat = 31.865374;
   final double _campusLon = -116.667263;
 
-  void _onMapCreated(MapboxMap map) {
+  void _onMapCreated(MapboxMap map) async {
     mapboxMap = map;
+    polylineManager = await map.annotations.createPolylineAnnotationManager();
   }
 
   void _startScanner() {
@@ -30,13 +34,14 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  /// Selecciona una ruta (edificio destino), llama al backend y dibuja la ruta óptima
   Future<void> _rutaSeleccionada(String idEdificio) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Calculando ruta a $idEdificio...')),
     );
 
     try {
-      // Ubicación de ejemplo (reemplaza por ubicación real si la tienes)
+      // Usa ubicación de ejemplo (puedes obtener la real con geolocalización)
       final double lat = 31.8652;
       final double lon = -116.6673;
 
@@ -53,8 +58,7 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
-      // Centrar cámara en el primer punto de la ruta
-      final first = ruta.first; // formato: [lat, lon]
+      final first = ruta.first;
       await mapboxMap?.flyTo(
         CameraOptions(
           center: Point(coordinates: Position(first[1], first[0])),
@@ -62,6 +66,19 @@ class _MapScreenState extends State<MapScreen> {
         ),
         MapAnimationOptions(duration: 1500),
       );
+
+      // Borra rutas anteriores del mapa
+      await polylineManager?.deleteAll();
+
+      // Dibuja la ruta óptima recibida del backend
+      await polylineManager?.create(PolylineAnnotationOptions(
+        geometry: LineString(
+          coordinates: ruta.map((p) => Position(p[1], p[0])).toList(),
+        ),
+        lineColor: Colors.blue.value,
+        lineWidth: 5.0,
+        lineOpacity: 0.8,
+      ));
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ruta recibida: ${ruta.length} puntos')),
@@ -105,7 +122,6 @@ class _MapScreenState extends State<MapScreen> {
               onMapCreated: _onMapCreated,
             ),
           ),
-
           Positioned(
             top: MediaQuery.of(context).padding.top,
             right: 16,
@@ -119,7 +135,6 @@ class _MapScreenState extends State<MapScreen> {
                   onPressed: _startScanner,
                 ),
                 const SizedBox(height: 105),
-
                 RutasBoton(onRutaSeleccionada: _rutaSeleccionada),
               ],
             ),

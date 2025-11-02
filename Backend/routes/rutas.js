@@ -9,56 +9,61 @@ const turf = require("@turf/turf");
  * Requiere en el cuerpo del request: { lat, lon, id_edificio }
  */
 router.post("/ruta", (req, res) => {
-  const { lat, lon, id_edificio } = req.body;
+  let { lat, lon, id_edificio } = req.body;
 
-  // 🔹 1️⃣ Validar parámetros
+  // 🔹 1. Validar parámetros
   if (!lat || !lon || !id_edificio) {
     return res.status(400).json({ error: "Faltan parámetros (lat, lon, id_edificio)" });
   }
 
-  // 🔹 2️⃣ Consultar el centro del edificio destino
+  // 🔹 2. Convertir id_edificio tipo "E1" a número entero
+  try {
+    id_edificio = parseInt(String(id_edificio).match(/\d+/)[0], 10);
+    if (isNaN(id_edificio)) {
+      throw new Error("No se pudo extraer número de id_edificio");
+    }
+  } catch (err) {
+    return res.status(400).json({ error: "id_edificio no tiene un formato válido" });
+  }
+
+  // 🔹 3. Consultar el centro del edificio destino
   const sqlEdificio = `
     SELECT ST_AsText(ST_Centroid(ubicacion)) AS centro
     FROM edificios
     WHERE id = ?;
   `;
-
   db.query(sqlEdificio, [id_edificio], (err, result) => {
     if (err) {
       console.error("❌ Error al consultar edificio:", err);
       return res.status(500).json({ error: "Error al consultar edificio", detalles: err });
     }
-
     if (result.length === 0) {
       return res.status(404).json({ error: "Edificio no encontrado" });
     }
 
-    // 🔹 3️⃣ Convertir el resultado POINT(x y) → coordenadas [lon, lat]
+    // 🔹 4. Convertir el resultado POINT(x y) → coordenadas [lon, lat]
     const coords = result[0].centro.replace("POINT(", "").replace(")", "").split(" ");
     const destino = [parseFloat(coords[0]), parseFloat(coords[1])];
     const origen = [parseFloat(lon), parseFloat(lat)];
 
-    // 🔹 4️⃣ Consultar todos los caminos registrados en la base de datos
+    // 🔹 5. Consultar todos los caminos registrados en la base de datos
     const sqlCaminos = `SELECT id, ST_AsText(geom) AS geom FROM caminos;`;
-
     db.query(sqlCaminos, (err, caminosResult) => {
       if (err) {
         console.error("❌ Error al consultar caminos:", err);
         return res.status(500).json({ error: "Error al consultar caminos", detalles: err });
       }
-
       if (caminosResult.length === 0) {
         return res.status(404).json({ error: "No hay caminos registrados" });
       }
 
-      // 🔹 5️⃣ Convertir cada registro en un Feature LineString para Turf.js
+      // 🔹 6. Convertir cada registro en un Feature LineString para Turf.js
       const features = caminosResult.map(row => {
         const points = row.geom
           .replace("LINESTRING(", "")
           .replace(")", "")
           .split(",")
           .map(p => p.trim().split(" ").map(Number));
-
         return turf.lineString(points, { id: row.id });
       });
 
@@ -66,8 +71,8 @@ router.post("/ruta", (req, res) => {
       const redCaminos = turf.featureCollection(features);
 
       try {
-        // 🔹 6️⃣ Calcular la ruta más corta dentro de la red de caminos
-        // (Simula la búsqueda del trayecto óptimo)
+        // 🔹 7. Calcular la ruta más corta dentro de la red de caminos
+        // Nota: Turf.js no incluye shortestPath nativamente, a menos que se haya añadido como extensión propia
         const ruta = turf.shortestPath(
           turf.point(origen),
           turf.point(destino),
@@ -78,7 +83,7 @@ router.post("/ruta", (req, res) => {
           return res.status(404).json({ error: "No se encontró una ruta entre los puntos." });
         }
 
-        // 🔹 7️⃣ Devolver la ruta en formato GeoJSON
+        // 🔹 8. Devolver la ruta en formato GeoJSON
         res.json({
           type: "FeatureCollection",
           features: [ruta],
