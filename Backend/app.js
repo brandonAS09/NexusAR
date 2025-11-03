@@ -18,5 +18,6 @@ app.use("/api", rutas); // aquí se define el endpoint base, por ejemplo: /api/r
 // ✅ Iniciar servidor
 const PORT = 3000;
 app.listen(PORT, () => {
+  console.log("MAPBOX_TOKEN en runtime:", process.env.MAPBOX_TOKEN);
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });

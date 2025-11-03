@@ -17,5 +17,6 @@
   },
 
   // 🔧 (Opcional) Asegurar que no haya formateador predeterminado
-  "editor.defaultFormatter": null
+  "editor.defaultFormatter": null,
+  "cmake.sourceDirectory": "C:/Users/brand/OneDrive/Documentos/Flutter/NexusAR/linux"
 }

@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db"); // tu conexión MySQL
+const db = require("../db");
 const axios = require("axios");
 
-// Endpoint para generar ruta óptima usando Mapbox
+// Endpoint para generar ruta óptima usando Mapbox Directions
 router.post("/ruta", async (req, res) => {
   try {
     const { lat, lon, id_edificio } = req.body;
@@ -12,27 +12,37 @@ router.post("/ruta", async (req, res) => {
       return res.status(400).json({ error: "Faltan parámetros (lat, lon, id_edificio)" });
     }
 
-    // 1️⃣ Obtener coordenadas del edificio desde la base de datos
-    const [edificioRows] = await db.promise().query(
-      "SELECT ST_X(ubicacion) AS lon, ST_Y(ubicacion) AS lat FROM edificios WHERE id = ?",
-      [id_edificio]
-    );
+    let edificioRows;
+    // Decide si buscar por id numérico o por nombre de edificio
+    if (/^\d+$/.test(String(id_edificio))) {
+      // Buscar por ID entero
+      const id = parseInt(id_edificio, 10);
+      [edificioRows] = await db.promise().query(
+        "SELECT ST_X(ST_Centroid(ubicacion)) AS lon, ST_Y(ST_Centroid(ubicacion)) AS lat FROM edificios WHERE id = ?",
+        [id]
+      );
+    } else {
+      // Buscar por nombre del edificio
+      [edificioRows] = await db.promise().query(
+        "SELECT ST_X(ST_Centroid(ubicacion)) AS lon, ST_Y(ST_Centroid(ubicacion)) AS lat FROM edificios WHERE nombre = ?",
+        [id_edificio]
+      );
+    }
 
-    if (!edificioRows[0]) {
-      return res.status(404).json({ error: "Edificio no encontrado" });
+    if (!edificioRows[0] || edificioRows[0].lon === null || edificioRows[0].lat === null) {
+      return res.status(404).json({ error: "Edificio no encontrado o sin ubicación válida" });
     }
 
     const destino = [edificioRows[0].lon, edificioRows[0].lat];
     const origen = [parseFloat(lon), parseFloat(lat)];
 
-    // 2️⃣ Construir URL para Mapbox Directions API
-    const profile = "mapbox/walking"; // walking, driving, cycling según preferencia
+    const profile = "mapbox/walking"; // walking, driving, cycling
     const coordinates = `${origen[0]},${origen[1]};${destino[0]},${destino[1]}`;
     const accessToken = process.env.MAPBOX_TOKEN;
 
     const url = `https://api.mapbox.com/directions/v5/${profile}/${coordinates}?geometries=geojson&steps=true&access_token=${accessToken}`;
 
-    // 3️⃣ Llamar a Mapbox Directions API
+    // Llama a la API de Mapbox Directions
     const response = await axios.get(url);
     const data = response.data;
 
@@ -42,7 +52,7 @@ router.post("/ruta", async (req, res) => {
 
     const route = data.routes[0];
 
-    // 4️⃣ Devolver la ruta en GeoJSON para el frontend
+    // Devuelve la ruta como GeoJSON FeatureCollection
     res.json({
       type: "FeatureCollection",
       features: [
@@ -50,8 +60,8 @@ router.post("/ruta", async (req, res) => {
           type: "Feature",
           geometry: route.geometry,
           properties: {
-            distance: route.distance, // metros
-            duration: route.duration, // segundos
+            distance: route.distance,
+            duration: route.duration,
           },
         },
       ],
@@ -59,7 +69,7 @@ router.post("/ruta", async (req, res) => {
 
   } catch (error) {
     console.error("Error generando ruta Mapbox:", error.message);
-    res.status(500).json({ error: "Error generando ruta" });
+    res.status(500).json({ error: "Error generando ruta", detalles: error.message });
   }
 });
 
