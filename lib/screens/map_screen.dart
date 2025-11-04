@@ -36,8 +36,36 @@ class _MapScreenState extends State<MapScreen> {
   final double _campusLat = 31.865374;
   final double _campusLon = -116.667263;
 
-  final double _testOrigenLat = 31.8660;
-  final double _testOrigenLon = -116.6680;
+  @override
+  void initState() {
+    super.initState();
+    _requestAndCheckLocation();
+  }
+
+  Future<void> _requestAndCheckLocation() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permiso de GPS denegado')),
+      );
+      return;
+    }
+    try {
+      Position pos = await Geolocator.getCurrentPosition();
+      print("🌎 Primera ubicación: (${pos.latitude}, ${pos.longitude})");
+      // Para centrar el mapa al iniciar, descomenta esto:
+      // await mapboxMap?.flyTo(
+      //   mb.CameraOptions(
+      //     center: mb.Point(coordinates: mb.Position(pos.longitude, pos.latitude)),
+      //     zoom: 17.0,
+      //   ),
+      //   mb.MapAnimationOptions(duration: 1500),
+      // );
+    } catch (e) {
+      print("❌ Error obteniendo ubicación: $e");
+    }
+  }
 
   void _onMapCreated(mb.MapboxMap map) async {
     mapboxMap = map;
@@ -156,7 +184,6 @@ class _MapScreenState extends State<MapScreen> {
     print("🔗 Línea actualizada");
 
     await pointManager?.deleteAll();
-    // ¡Ya no hay pines personalizados ni imágenes!
   }
 
   void _finalizaRuta(double destLat, double destLon) async {
@@ -211,8 +238,10 @@ class _MapScreenState extends State<MapScreen> {
     );
 
     try {
-      final double origenLat = _testOrigenLat;
-      final double origenLon = _testOrigenLon;
+      final pos = await Geolocator.getCurrentPosition();
+      final double origenLat = pos.latitude;
+      final double origenLon = pos.longitude;
+
       final ruta = await rutaService.obtenerRuta(
         lat: origenLat,
         lon: origenLon,

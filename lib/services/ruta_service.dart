@@ -1,43 +1,41 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-/// Servicio que llama a tu backend y obtiene la ruta óptima desde la base de datos.
-class RutaService {
-  final String baseUrl = "http://10.0.2.2:3000"; // Cambia IP si usas físico
+/// 🌐 Servicio de conexión con el backend Node.js
+const String _baseUrl = 'http://10.41.55.194:3000';
 
+class RutaService {
+  /// --------------------------
+  /// 🚩 OBTENER RUTA DEL BACKEND
+  /// --------------------------
   Future<List<List<double>>> obtenerRuta({
     required double lat,
     required double lon,
     required String idEdificio,
   }) async {
-    final url = Uri.parse("$baseUrl/api/ruta");
+    final url = Uri.parse('$_baseUrl/api/ruta');
     final response = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "lat": lat,
-        "lon": lon,
-        "id_edificio": idEdificio,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'lat': lat,
+        'lon': lon,
+        'id_edificio': idEdificio,
       }),
     );
+    print("🛰️ Respuesta ruta: ${response.statusCode} ${response.body}");
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = json.decode(response.body); // <---  GeoJSON
 
-      // Soporta respuesta como FeatureCollection o Feature
-      List coords = [];
-      if (data.containsKey("features")) {
-        // FeatureCollection
-        coords = (data["features"] as List)[0]["geometry"]["coordinates"];
-      } else if (data.containsKey("geometry")) {
-        // Feature simple
-        coords = data["geometry"]["coordinates"];
-      }
+      final List? coordinates = data['features']?[0]?['geometry']?['coordinates'];
+      if (coordinates == null || coordinates.isEmpty) return [];
 
-      // Formato: [ [lat, lon], [lat, lon], ... ]
-      return coords.map<List<double>>((p) => [p[1], p[0]]).toList();
+      // Convierte [lon, lat] a [lat, lon]
+      return coordinates.map<List<double>>((coord) => [coord[1], coord[0]]).toList();
     } else {
-      throw Exception("Error al obtener ruta: ${response.body}");
+      print('❌ Error al obtener ruta: ${response.statusCode} ${response.body}');
+      return [];
     }
   }
 }
