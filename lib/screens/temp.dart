@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
 import 'package:nexus_ar/components/mapa_bar.dart';
@@ -6,7 +7,11 @@ import 'package:nexus_ar/core/app_colors.dart';
 import 'package:nexus_ar/components/rutas_boton.dart';
 import 'package:nexus_ar/services/ruta_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' show MbxImage;
+import 'dart:math';
+import 'package:image/image.dart' as IMG;
 
 const Color kMorado = Color(0xFFB097F1);
 
@@ -32,19 +37,70 @@ class _MapScreenState extends State<MapScreen> {
   Timer? _simulacionTimer;
   int _simIndex = 0;
   bool _simulandoRecorrido = false;
+  bool iconsLoaded = false;
 
   final double _campusLat = 31.865374;
   final double _campusLon = -116.667263;
 
-  final double _testOrigenLat = 31.8660;
+  // NUEVO: cambia el origen de prueba para estar seguro que no colapsa
+  final double _testOrigenLat = 31.8660;  // ALEJADO de E1
   final double _testOrigenLon = -116.6680;
+
+  Future<void> _loadMapIcons() async {
+    if (mapboxMap == null) return;
+    try {
+      if (iconsLoaded) return;
+      final personBytes = await rootBundle.load("assets/PersonPin.png");
+      final locationBytes = await rootBundle.load("assets/LocationPin.png");
+
+      final personImg = IMG.decodeImage(personBytes.buffer.asUint8List())!;
+      final locationImg = IMG.decodeImage(locationBytes.buffer.asUint8List())!;
+
+      final personImage = MbxImage(
+        data: personBytes.buffer.asUint8List(),
+        width: personImg.width,
+        height: personImg.height,
+      );
+      final locationImage = MbxImage(
+        data: locationBytes.buffer.asUint8List(),
+        width: locationImg.width,
+        height: locationImg.height,
+      );
+
+      await mapboxMap!.style.addStyleImage(
+        "PersonPin",
+        1.0,
+        personImage,
+        false,
+        <mb.ImageStretches>[],
+        <mb.ImageStretches>[],
+        mb.ImageContent(left: 0.0, top: 0.0, right: 0.0, bottom: 0.0),
+      );
+
+      await mapboxMap!.style.addStyleImage(
+        "LocationPin",
+        1.0,
+        locationImage,
+        false,
+        <mb.ImageStretches>[],
+        <mb.ImageStretches>[],
+        mb.ImageContent(left: 0.0, top: 0.0, right: 0.0, bottom: 0.0),
+      );
+
+      iconsLoaded = true;
+      print("✅ Iconos PersonPin y LocationPin cargados y añadidos.");
+    } catch (e) {
+      debugPrint("❌ Error loading Mapbox icon assets: $e");
+    }
+  }
 
   void _onMapCreated(mb.MapboxMap map) async {
     mapboxMap = map;
     try {
       polylineManager = await map.annotations.createPolylineAnnotationManager();
       pointManager = await map.annotations.createPointAnnotationManager();
-      print("✅ Mapbox managers listos.");
+      await _loadMapIcons();
+      print("✅ Mapbox managers y iconos listos.");
     } catch (e) {
       print("❌ Error en _onMapCreated: $e");
     }
@@ -140,13 +196,13 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _redibujarRutaDesde(int idx) async {
     if (_rutaActiva == null) return;
+    await polylineManager?.deleteAll();
     List<mb.Position> dynamicCoords = _rutaActiva!
         .sublist(idx)
         .map((p) => mb.Position(p[1], p[0]))
         .toList();
     print("🆕 Redibujar ruta desde $idx: nuevos coords: $dynamicCoords");
 
-    await polylineManager?.deleteAll();
     await polylineManager?.create(mb.PolylineAnnotationOptions(
       geometry: mb.LineString(coordinates: dynamicCoords),
       lineColor: kMorado.value,
@@ -156,7 +212,27 @@ class _MapScreenState extends State<MapScreen> {
     print("🔗 Línea actualizada");
 
     await pointManager?.deleteAll();
-    // ¡Ya no hay pines personalizados ni imágenes!
+
+    try {
+      await pointManager?.create(
+        mb.PointAnnotationOptions(
+          geometry: mb.Point(coordinates: dynamicCoords.first),
+          iconImage: "PersonPin",
+          iconSize: 1.8,
+        ),
+      );
+      print("📍 PersonPin colocado en ${dynamicCoords.first}");
+      await pointManager?.create(
+        mb.PointAnnotationOptions(
+          geometry: mb.Point(coordinates: dynamicCoords.last),
+          iconImage: "LocationPin",
+          iconSize: 1.8,
+        ),
+      );
+      print("📍 LocationPin colocado en ${dynamicCoords.last}");
+    } catch (e) {
+      print("❌ Error creando los PointAnnotations: $e");
+    }
   }
 
   void _finalizaRuta(double destLat, double destLon) async {
@@ -211,6 +287,7 @@ class _MapScreenState extends State<MapScreen> {
     );
 
     try {
+      // CAMBIADO PARA TESTEAR: usa origen alejado
       final double origenLat = _testOrigenLat;
       final double origenLon = _testOrigenLon;
       final ruta = await rutaService.obtenerRuta(
@@ -254,6 +331,7 @@ class _MapScreenState extends State<MapScreen> {
         ),
         mb.MapAnimationOptions(duration: 1500),
       );
+      await _loadMapIcons();
       setState(() {
         _rutaActiva = ruta;
         _destinoLat = ruta.last[0];
@@ -271,8 +349,24 @@ class _MapScreenState extends State<MapScreen> {
         lineOpacity: 0.9,
       ));
 
-      _startLocationUpdates(_destinoLat!, _destinoLon!);
+      try {
+        await pointManager?.create(mb.PointAnnotationOptions(
+          geometry: mb.Point(coordinates: coords.first),
+          iconImage: "PersonPin",
+          iconSize: 1.8,
+        ));
+        print("📍 PersonPin creado en ${coords.first}");
 
+        await pointManager?.create(mb.PointAnnotationOptions(
+          geometry: mb.Point(coordinates: coords.last),
+          iconImage: "LocationPin",
+          iconSize: 1.8,
+        ));
+        print("📍 LocationPin creado en ${coords.last}");
+      } catch (e) {
+        print("❌ ERROR al crear puntos iniciales: $e");
+      }
+      _startLocationUpdates(_destinoLat!, _destinoLon!);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ruta recibida: ${ruta.length} puntos')),
       );
