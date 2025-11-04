@@ -16,8 +16,14 @@ app.use("/auth", authRoutes);
 app.use("/api", rutas); // aquí se define el endpoint base, por ejemplo: /api/ruta
 
 // ✅ Iniciar servidor
+const os = require("os");
+const interfaces = os.networkInterfaces();
 const PORT = 3000;
-app.listen(PORT, () => {
-  console.log("MAPBOX_TOKEN en runtime:", process.env.MAPBOX_TOKEN);
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+const ip = Object.values(interfaces)
+  .flat()
+  .find((i) => i.family === "IPv4" && !i.internal)?.address;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor disponible en: http://${ip}:${PORT}`);
 });
+
