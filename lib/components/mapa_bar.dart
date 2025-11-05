@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nexus_ar/core/app_colors.dart';
+import 'package:nexus_ar/screens/menu.dart'; // ✅ Import para volver al Home
 
 class MapAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
@@ -9,7 +10,7 @@ class MapAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onHelpPressed;
   final VoidCallback? onLogoutPressed;
   final Widget? title;
-  final bool centerTitle; 
+  final bool centerTitle;
 
   const MapAppBar({
     super.key,
@@ -24,8 +25,19 @@ class MapAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final purpleColor = AppColors.botonInicioSesion;
     final IconData leftIcon = backButton ? Icons.arrow_back : Icons.logout;
-    final VoidCallback? onLeftIconPressed =
-        backButton ? () => Navigator.pop(context) : onLogoutPressed;
+
+    final VoidCallback? onLeftIconPressed = backButton
+        ? () {
+            // 🔹 Siempre volver al Home limpio (MenuScreen con index 1)
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MenuScreen(initialIndex: 1),
+              ),
+              (route) => false,
+            );
+          }
+        : onLogoutPressed;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -49,19 +61,22 @@ class MapAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Titulo
+            // 🔹 Título centrado u alineado a la izquierda
             if (title != null)
               Align(
-                alignment:
-                    centerTitle ? Alignment.center : Alignment.centerLeft,
+                alignment: centerTitle
+                    ? Alignment.center
+                    : Alignment.centerLeft,
                 child: Padding(
                   padding: EdgeInsets.only(
-                      left: centerTitle ? 0 : 60, right: centerTitle ? 0 : 60),
+                    left: centerTitle ? 0 : 60,
+                    right: centerTitle ? 0 : 60,
+                  ),
                   child: title,
                 ),
               ),
 
-            // Boton regreso
+            // 🔹 Botón de regreso o logout
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(

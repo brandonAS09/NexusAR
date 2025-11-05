@@ -26,12 +26,23 @@ class _MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    debugPrint(
+      '>>> MenuScreen.initState - initialIndex = ${widget.initialIndex} | key = ${widget.key}',
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    debugPrint(
+      '>>> MenuScreen.didChangeDependencies - selectedIndex = $_selectedIndex',
+    );
   }
 
   // PÁGINAS ESTÁTICAS: El orden debe ser: [LOGROS (index 1), NOTIFICACIONES (index 2)]
   final List<Widget> _staticPages = [
     const ContentPage(title: 'Bienvenido a la aplicacion'),
-    const ContentPage(title: 'LOGROS'),        // ⬅️ INDEX 2
+    const ContentPage(title: 'LOGROS'), // ⬅️ INDEX 2
     const ContentPage(title: 'NOTIFICACIONES'), // ⬅️ INDEX 3
   ];
 
@@ -98,7 +109,9 @@ class _MenuScreenState extends State<MenuScreen> {
         : 'UBICACIÓN';
 
     final List<Widget> pages = [
-      ContentPage(title: page0Title), // 0: UBICACIÓN (ya no visible, se reemplaza por MapScreen)
+      ContentPage(
+        title: page0Title,
+      ), // 0: UBICACIÓN (ya no visible, se reemplaza por MapScreen)
       ..._staticPages, // 2: LOGROS, 3: NOTIFICACIONES
     ];
 
@@ -118,10 +131,7 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
 
       // 2️⃣ Contenido central
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: pages),
 
       // 3️⃣ Barra inferior
       bottomNavigationBar: SizedBox(

@@ -27,16 +27,32 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final IconData leftIcon = backButton ? Icons.arrow_back : Icons.logout;
 
     final VoidCallback? onLeftIconPressed = backButton
-        ? () {
-            // Fuerza reconstrucción completa del MenuScreen y limpia la pila
-            Navigator.of(context).pushAndRemoveUntil(
+        ? () async {
+            debugPrint(
+              '>>> CustomAppBar: backButton pressed. Starting navigation to fresh MenuScreen.',
+            );
+
+            // 1) Remover hasta la primera ruta (si existe)
+            Navigator.of(context).popUntil((route) {
+              debugPrint(
+                '  checking route: ${route.settings.name} | isFirst=${route.isFirst}',
+              );
+              return route.isFirst;
+            });
+
+            // 2) Reemplazar la primera ruta por un MenuScreen nuevo (esto fuerza rebuild)
+            // Usamos pushReplacement para mantener animación (reemplaza la ruta actual por la nueva)
+            await Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (context) => MenuScreen(
-                  key: UniqueKey(), // <- OBLIGA a Flutter a crear nuevo State
-                  initialIndex: 1, // <- siempre abrir en Home (índice 1)
+                  key: UniqueKey(), // fuerza nuevo State
+                  initialIndex: 1, // siempre Home
                 ),
               ),
-              (route) => false,
+            );
+
+            debugPrint(
+              '>>> CustomAppBar: navigation to fresh MenuScreen completed.',
             );
           }
         : onLogoutPressed;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nexus_ar/core/app_colors.dart';
 import 'package:nexus_ar/screens/legal.dart';
+import 'package:nexus_ar/screens/menu.dart';
 
 class MiPerfilScreen extends StatefulWidget {
   const MiPerfilScreen({super.key});
@@ -22,7 +23,8 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
   Future<void> _cargarCorreo() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _correoUsuario = prefs.getString('correo_usuario') ?? 'Correo no disponible';
+      _correoUsuario =
+          prefs.getString('correo_usuario') ?? 'Correo no disponible';
     });
   }
 
@@ -42,7 +44,15 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
         title: const Text('Mi Perfil'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MenuScreen(initialIndex: 1),
+              ),
+              (route) => false,
+            );
+          },
         ),
       ),
       body: Center(
@@ -50,19 +60,28 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const SizedBox(height: 30),
-            const Icon(Icons.account_circle_outlined,
-                size: 150, color: AppColors.botonInicioSesion),
+            const Icon(
+              Icons.account_circle_outlined,
+              size: 150,
+              color: AppColors.botonInicioSesion,
+            ),
             const SizedBox(height: 10),
             const Text(
               'Mi Perfil',
               style: TextStyle(
-                  fontSize: 44, fontWeight: FontWeight.bold, color: Colors.white),
+                fontSize: 44,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
               'Correo: ${_correoUsuario ?? "Cargando..."}',
               style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 300),
             const Divider(
@@ -75,14 +94,19 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.botonInicioSesion,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 100, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 100,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
               onPressed: () => _navigateToLegal(context),
-              child: const Text('Legal',
-                  style: TextStyle(fontSize: 24, color: Colors.white)),
+              child: const Text(
+                'Legal',
+                style: TextStyle(fontSize: 24, color: Colors.white),
+              ),
             ),
           ],
         ),
