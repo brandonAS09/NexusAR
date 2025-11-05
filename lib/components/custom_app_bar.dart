@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nexus_ar/core/app_colors.dart';
+import 'package:nexus_ar/screens/menu.dart'; // ⬅️ Importa el MenuScreen
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
@@ -24,8 +25,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final purpleColor = AppColors.botonInicioSesion;
     final IconData leftIcon = backButton ? Icons.arrow_back : Icons.logout;
-    final VoidCallback? onLeftIconPressed =
-        backButton ? () => Navigator.pop(context) : onLogoutPressed;
+
+    final VoidCallback? onLeftIconPressed = backButton
+        ? () {
+            // Fuerza reconstrucción completa del MenuScreen y limpia la pila
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => MenuScreen(
+                  key: UniqueKey(), // <- OBLIGA a Flutter a crear nuevo State
+                  initialIndex: 1, // <- siempre abrir en Home (índice 1)
+                ),
+              ),
+              (route) => false,
+            );
+          }
+        : onLogoutPressed;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -49,19 +63,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Titulo
             if (title != null)
               Align(
-                alignment:
-                    centerTitle ? Alignment.center : Alignment.centerLeft,
+                alignment: centerTitle
+                    ? Alignment.center
+                    : Alignment.centerLeft,
                 child: Padding(
                   padding: EdgeInsets.only(
-                      left: centerTitle ? 0 : 60, right: centerTitle ? 0 : 60),
+                    left: centerTitle ? 0 : 60,
+                    right: centerTitle ? 0 : 60,
+                  ),
                   child: title,
                 ),
               ),
-
-            // Boton izquierdo
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(
@@ -69,13 +83,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 onPressed: onLeftIconPressed,
               ),
             ),
-
-            // Boton derecho
             Align(
               alignment: Alignment.centerRight,
               child: IconButton(
-                icon: const Icon(Icons.help_outline,
-                    size: 30, color: Colors.black),
+                icon: const Icon(
+                  Icons.help_outline,
+                  size: 30,
+                  color: Colors.black,
+                ),
                 onPressed: onHelpPressed,
               ),
             ),

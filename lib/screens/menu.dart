@@ -10,20 +10,29 @@ import 'package:nexus_ar/screens/mi_perfil.dart';
 import 'package:nexus_ar/screens/map_screen.dart'; // ✅ Import del mapa
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final int initialIndex;
+
+  const MenuScreen({super.key, this.initialIndex = 1});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _isInitialLoad = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   // PÁGINAS ESTÁTICAS: El orden debe ser: [LOGROS (index 1), NOTIFICACIONES (index 2)]
   final List<Widget> _staticPages = [
-    const ContentPage(title: 'LOGROS'),        // ⬅️ INDEX 1
-    const ContentPage(title: 'NOTIFICACIONES'), // ⬅️ INDEX 2
+    const ContentPage(title: 'Bienvenido a la aplicacion'),
+    const ContentPage(title: 'LOGROS'),        // ⬅️ INDEX 2
+    const ContentPage(title: 'NOTIFICACIONES'), // ⬅️ INDEX 3
   ];
 
   // 🔹 Controlador de taps del menú inferior
@@ -38,7 +47,7 @@ class _MenuScreenState extends State<MenuScreen> {
     }
 
     // ⬅️ Si toca “Mi Perfil”, ir a pantalla de perfil
-    if (index == 3) {
+    if (index == 4) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const MiPerfilScreen()),
@@ -64,7 +73,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     if (newIndex != null && newIndex != _selectedIndex) {
       setState(() {
-        _selectedIndex = newIndex;
+        _selectedIndex = 1;
       });
     }
   }
@@ -90,7 +99,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     final List<Widget> pages = [
       ContentPage(title: page0Title), // 0: UBICACIÓN (ya no visible, se reemplaza por MapScreen)
-      ..._staticPages, // 1: LOGROS, 2: NOTIFICACIONES
+      ..._staticPages, // 2: LOGROS, 3: NOTIFICACIONES
     ];
 
     return Scaffold(
