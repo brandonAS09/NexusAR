@@ -46,9 +46,9 @@ class _MapScreenState extends State<MapScreen> {
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permiso de GPS denegado')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Permiso de GPS denegado')));
       return;
     }
     try {
@@ -89,24 +89,43 @@ class _MapScreenState extends State<MapScreen> {
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permiso de GPS denegado')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Permiso de GPS denegado')));
       return;
     }
     _posSub?.cancel();
-    _posSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(distanceFilter: 8),
-    ).listen((Position pos) {
-      _onLocationUpdate(pos, destLat, destLon);
-    });
+    _posSub =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(distanceFilter: 8),
+        ).listen(
+          (Position pos) {
+            _onLocationUpdate(pos, destLat, destLon);
+          },
+          onError: (error) {
+            print('❌ Error al obtener la ubicación en tiempo real: $error');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: Colors.redAccent,
+                content: Text('Se apagó el GPS. Actívalo para continuar.'),
+              ),
+            );
+            _posSub
+                ?.cancel(); // Detener el stream para que no salga más errores
+          },
+        );
   }
 
   void _onLocationUpdate(Position userPos, double destLat, double destLon) {
     double distancia = Geolocator.distanceBetween(
-      userPos.latitude, userPos.longitude, destLat, destLon,
+      userPos.latitude,
+      userPos.longitude,
+      destLat,
+      destLon,
     );
-    print("🔎 Ubicación actual: (${userPos.latitude},${userPos.longitude}), destino: ($destLat,$destLon), distancia: $distancia");
+    print(
+      "🔎 Ubicación actual: (${userPos.latitude},${userPos.longitude}), destino: ($destLat,$destLon), distancia: $distancia",
+    );
     if (distancia < 20) {
       print("🛑 ¡Finalizando ruta! Distancia menor al umbral.");
       _finalizaRuta(destLat, destLon);
@@ -118,8 +137,10 @@ class _MapScreenState extends State<MapScreen> {
       double minDist = double.infinity;
       for (int i = 0; i < _rutaActiva!.length; i++) {
         double d = Geolocator.distanceBetween(
-          userPos.latitude, userPos.longitude,
-          _rutaActiva![i][0], _rutaActiva![i][1],
+          userPos.latitude,
+          userPos.longitude,
+          _rutaActiva![i][0],
+          _rutaActiva![i][1],
         );
         if (d < minDist) {
           minDist = d;
@@ -160,7 +181,9 @@ class _MapScreenState extends State<MapScreen> {
         speed: 0.0,
         speedAccuracy: 0.0,
       );
-      print("🚶 Simular recorrido index $_simIndex, posición simulada: $virtualPosition");
+      print(
+        "🚶 Simular recorrido index $_simIndex, posición simulada: $virtualPosition",
+      );
       _onLocationUpdate(virtualPosition, _destinoLat!, _destinoLon!);
       _simIndex++;
     });
@@ -175,12 +198,14 @@ class _MapScreenState extends State<MapScreen> {
     print("🆕 Redibujar ruta desde $idx: nuevos coords: $dynamicCoords");
 
     await polylineManager?.deleteAll();
-    await polylineManager?.create(mb.PolylineAnnotationOptions(
-      geometry: mb.LineString(coordinates: dynamicCoords),
-      lineColor: kMorado.value,
-      lineWidth: 5.0,
-      lineOpacity: 0.9,
-    ));
+    await polylineManager?.create(
+      mb.PolylineAnnotationOptions(
+        geometry: mb.LineString(coordinates: dynamicCoords),
+        lineColor: kMorado.value,
+        lineWidth: 5.0,
+        lineOpacity: 0.9,
+      ),
+    );
     print("🔗 Línea actualizada");
 
     await pointManager?.deleteAll();
@@ -207,7 +232,7 @@ class _MapScreenState extends State<MapScreen> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text("Aceptar"),
-          )
+          ),
         ],
       ),
     );
@@ -233,9 +258,9 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Calculando ruta a $idEdificio...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Calculando ruta a $idEdificio...')));
 
     try {
       final pos = await Geolocator.getCurrentPosition();
@@ -268,7 +293,9 @@ class _MapScreenState extends State<MapScreen> {
       if (ruta.length < 2) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('La ruta recibida es demasiado corta (${ruta.length} puntos). (Backend issue)'),
+            content: Text(
+              'La ruta recibida es demasiado corta (${ruta.length} puntos). (Backend issue)',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -293,12 +320,14 @@ class _MapScreenState extends State<MapScreen> {
       await pointManager?.deleteAll();
       final coords = ruta.map((p) => mb.Position(p[1], p[0])).toList();
       print("🔗 Polyline inicial coords: $coords");
-      await polylineManager?.create(mb.PolylineAnnotationOptions(
-        geometry: mb.LineString(coordinates: coords),
-        lineColor: kMorado.value,
-        lineWidth: 5.0,
-        lineOpacity: 0.9,
-      ));
+      await polylineManager?.create(
+        mb.PolylineAnnotationOptions(
+          geometry: mb.LineString(coordinates: coords),
+          lineColor: kMorado.value,
+          lineWidth: 5.0,
+          lineOpacity: 0.9,
+        ),
+      );
 
       _startLocationUpdates(_destinoLat!, _destinoLon!);
 
@@ -348,7 +377,9 @@ class _MapScreenState extends State<MapScreen> {
               key: const ValueKey('mapWidget'),
               styleUri: mb.MapboxStyles.MAPBOX_STREETS,
               cameraOptions: mb.CameraOptions(
-                center: mb.Point(coordinates: mb.Position(_campusLon, _campusLat)),
+                center: mb.Point(
+                  coordinates: mb.Position(_campusLon, _campusLat),
+                ),
                 zoom: 17,
               ),
               onMapCreated: _onMapCreated,
@@ -376,17 +407,31 @@ class _MapScreenState extends State<MapScreen> {
               bottom: 96,
               right: 24,
               child: ElevatedButton.icon(
-                icon: Icon(_simulandoRecorrido ? Icons.pause : Icons.directions_walk, color: Colors.white),
-                label: Text(_simulandoRecorrido ? 'Detener simular recorrido' : 'Simular recorrido'),
+                icon: Icon(
+                  _simulandoRecorrido ? Icons.pause : Icons.directions_walk,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  _simulandoRecorrido
+                      ? 'Detener simular recorrido'
+                      : 'Simular recorrido',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orangeAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                 ),
                 onPressed: () {
                   if (_simulandoRecorrido) {
                     _simulacionTimer?.cancel();
-                    setState(() { _simulandoRecorrido = false; });
+                    setState(() {
+                      _simulandoRecorrido = false;
+                    });
                   } else {
                     _simularRecorrido();
                   }
@@ -402,8 +447,13 @@ class _MapScreenState extends State<MapScreen> {
                 label: const Text('Simular llegada'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kMorado,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                 ),
                 onPressed: () => _finalizaRuta(_destinoLat!, _destinoLon!),
               ),
