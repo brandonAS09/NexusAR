@@ -107,7 +107,7 @@ class _MapScreenState extends State<MapScreen> {
       userPos.latitude, userPos.longitude, destLat, destLon,
     );
     print("🔎 Ubicación actual: (${userPos.latitude},${userPos.longitude}), destino: ($destLat,$destLon), distancia: $distancia");
-    if (distancia < 10) {
+    if (distancia < 20) {
       print("🛑 ¡Finalizando ruta! Distancia menor al umbral.");
       _finalizaRuta(destLat, destLon);
       _posSub?.cancel();
