@@ -6,7 +6,7 @@ import 'core/app_colors.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 👇 Configura el token de Mapbox una sola vez
+  // Configura el token de Mapbox una sola vez
   MapboxOptions.setAccessToken("pk.eyJ1IjoiYnJhbmRvbmFzMDkiLCJhIjoiY21oMmN1MmE0MGF4YzJqb2JseXh5cnhwdiJ9.xYSjGak9r8yqwj8byf0drA");
 
   runApp(const MyApp());

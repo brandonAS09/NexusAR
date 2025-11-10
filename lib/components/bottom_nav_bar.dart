@@ -65,7 +65,7 @@ class CustomBottomNavBar extends StatelessWidget {
               onTap: () => onItemSelected(2),
             ),
             _buildBottomBarIcon(
-              icon: Icons.notifications_none,
+              icon: Icons.checklist_outlined,
               index: 3,
               isSelected: selectedIndex == 3,
               onTap: () => onItemSelected(3),

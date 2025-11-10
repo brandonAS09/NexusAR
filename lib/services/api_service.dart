@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 ///
 /// ⚙️ Si usas emulador Android:
 ///   usa `10.0.2.2`
+/// Este se usa para el CEL en la UABC
+/// 10.41.55.194
 ///
 /// ⚙️ Si usas dispositivo físico:
 ///   usa tu IP local, ej. `192.168.1.105:3000`

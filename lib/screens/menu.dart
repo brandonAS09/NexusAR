@@ -8,6 +8,7 @@ import 'package:nexus_ar/components/logout_dialog.dart';
 import 'package:nexus_ar/screens/inicio_sesion.dart';
 import 'package:nexus_ar/screens/mi_perfil.dart';
 import 'package:nexus_ar/screens/map_screen.dart'; // ✅ Import del mapa
+import 'package:nexus_ar/screens/asistencia.dart'; // ✅ Import de Asistencia
 
 class MenuScreen extends StatefulWidget {
   final int initialIndex;
@@ -39,11 +40,11 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  // PÁGINAS ESTÁTICAS: El orden debe ser: [LOGROS (index 1), NOTIFICACIONES (index 2)]
+  // PÁGINAS ESTÁTICAS: El orden debe ser: [Bienvenida (index 1), LOGROS (index 2), ASISTENCIA (index 3)]
   final List<Widget> _staticPages = [
     const ContentPage(title: 'Bienvenido a la aplicacion'),
     const ContentPage(title: 'LOGROS'), // ⬅️ INDEX 2
-    const ContentPage(title: 'NOTIFICACIONES'), // ⬅️ INDEX 3
+    const ContentPage(title: 'ASISTENCIA'), // ⬅️ INDEX 3
   ];
 
   // 🔹 Controlador de taps del menú inferior
@@ -53,6 +54,15 @@ class _MenuScreenState extends State<MenuScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const MapScreen()),
+      );
+      return;
+    }
+
+    // ⬅️ Si toca “ASISTENCIA”, abrir la pantalla de Asistencia creada
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AsistenciaScreen()),
       );
       return;
     }
@@ -112,7 +122,7 @@ class _MenuScreenState extends State<MenuScreen> {
       ContentPage(
         title: page0Title,
       ), // 0: UBICACIÓN (ya no visible, se reemplaza por MapScreen)
-      ..._staticPages, // 2: LOGROS, 3: NOTIFICACIONES
+      ..._staticPages, // 1: Bienvenida, 2: LOGROS, 3: ASISTENCIA
     ];
 
     return Scaffold(
