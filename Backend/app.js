@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const asistenciaRoutes = require("./routes/asistencia");
 require("dotenv").config();
 
 // ✅ Middlewares
@@ -14,6 +15,7 @@ const rutas = require("./routes/rutas"); // ← Asegúrate que el archivo se lla
 // ✅ Usar rutas
 app.use("/auth", authRoutes);
 app.use("/api", rutas); // aquí se define el endpoint base, por ejemplo: /api/ruta
+app.use("/asistencia",asistenciaRoutes); //rutas de asistencia, endpoints agregados
 
 // ✅ Iniciar servidor
 const os = require("os");
