@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:nexus_ar/screens/inicio_sesion.dart';
+import 'package:nexus_ar/screens/asistencia.dart';
 import 'core/app_colors.dart';
 
 void main() {
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       home: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        body: InicioSesion(),
+        body: AsistenciaScreen(),
       ),
     );
   }

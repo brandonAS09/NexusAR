@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nexus_ar/core/app_colors.dart';
 import 'package:nexus_ar/screens/menu.dart';
+import 'package:nexus_ar/screens/qr.dart';
 
 class AsistenciaScreen extends StatefulWidget {
   const AsistenciaScreen({super.key});
@@ -15,10 +16,38 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
     super.initState();
   }
 
+  Future<void> _openQrScanner() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const ScanQrScreen()),
+    );
+
+    if (result != null && mounted) {
+      // Por ahora mostramos un dialog con el valor escaneado.
+      // Más adelante aquí llamaremos al backend /attendance/start y mostraremos el modal solicitado.
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('QR detectado'),
+          content: Text('Contenido: $result'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // El usuario salió sin escanear o canceló
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Escaneo cancelado o no se detectó QR')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // botón estilo reutilizable para que coincida con la imagen
     final ButtonStyle purpleButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: AppColors.botonInicioSesion,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -30,6 +59,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         backgroundColor: AppColors.botonInicioSesion,
+        title: const Text('Asistencia'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -47,14 +77,10 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
         child: Center(
           child: Column(
             children: [
-              // Espacio antes de botones para parecerse al mock
               const SizedBox(height: 80),
-              // Primer botón (no hace nada por ahora)
               ElevatedButton(
                 style: purpleButtonStyle,
-                onPressed: () {
-                  // Intencionalmente vacío por ahora
-                },
+                onPressed: _openQrScanner,
                 child: const Text(
                   'Asistencia\ncon QR',
                   textAlign: TextAlign.center,
@@ -65,14 +91,11 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 206),
-
-              // Segundo botón (no hace nada por ahora)
               ElevatedButton(
                 style: purpleButtonStyle,
                 onPressed: () {
-                  // Intencionalmente vacío por ahora
+                  // Aquí irá la pantalla de registro de asistencias
                 },
                 child: const Text(
                   'Registro de\nAsistencias',
@@ -84,8 +107,6 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   ),
                 ),
               ),
-
-              // Relleno para empujar contenido hacia arriba si la pantalla es grande
               const Spacer(),
               const Divider(
                 color: Colors.white54,
