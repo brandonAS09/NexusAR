@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const asistenciaRoutes = require("./routes/asistencia");
+const horariosRoutes = require("./routes/horarios"); // Corregido
 require("dotenv").config();
 
 // ✅ Middlewares
@@ -33,4 +34,3 @@ const ip = Object.values(interfaces)
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor disponible en: http://${ip}:${PORT}`);
 });
-
