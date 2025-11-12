@@ -10,12 +10,17 @@ app.use(express.json());
 
 // ✅ Importar rutas
 const authRoutes = require("./routes/auth");
-const rutas = require("./routes/rutas"); // ← Asegúrate que el archivo se llame rutas.js dentro de /routes
+const rutas = require("./routes/rutas");
+const ubicacionRoutes = require('./routes/ubicacion'); // <-- 1. LA TIENES IMPORTADA
 
 // ✅ Usar rutas
 app.use("/auth", authRoutes);
-app.use("/api", rutas); // aquí se define el endpoint base, por ejemplo: /api/ruta
-app.use("/asistencia",asistenciaRoutes); //rutas de asistencia, endpoints agregados
+app.use("/api", rutas); 
+app.use("/asistencia", asistenciaRoutes);
+
+// --- ¡¡AQUÍ FALTA LA LÍNEA!! ---
+app.use('/', ubicacionRoutes);
+
 
 // ✅ Iniciar servidor
 const os = require("os");

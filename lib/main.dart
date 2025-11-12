@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       home: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        body: AsistenciaScreen(),
+        body: InicioSesion(),
       ),
     );
   }

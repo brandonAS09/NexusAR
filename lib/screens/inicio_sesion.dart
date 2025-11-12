@@ -84,21 +84,30 @@ class _InicioSesionState extends State<InicioSesion> {
     // 4. Llamada al backend
     try {
       final resultado = await _apiService.login(correo, password);
+      final usuario = resultado['usuario']; // Obtenemos el objeto usuario
 
       // Éxito: El backend devolvió 200
-      print("Login Exitoso: Usuario ${resultado['usuario']['nombre']}");
+      // CAMBIO: El backend devuelve 'correo', no 'nombre'.
+      print("Login Exitoso: Usuario ${usuario['correo']}");
 
       // Mostrar un mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('¡Bienvenido, ${resultado['usuario']['nombre']}!'),
+          // CAMBIO: Usar 'correo'
+          content: Text('¡Bienvenido, ${usuario['correo']}!'),
         ),
       );
 
+      // --- !! MODIFICACIÓN IMPORTANTE !! ---
+      // Guardar los datos para que AsistenciaScreen los vea
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('correo_usuario', resultado['usuario']['correo']);
+      
+      // CAMBIO: La llave DEBE ser 'email_usuario' para que AsistenciaScreen la encuentre.
+      await prefs.setString('email_usuario', usuario['correo']);
 
       // 🚀 Navegación exitosa al menú
+      // (Asegúrate que 'mounted' sea true antes de navegar)
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MenuScreen()),

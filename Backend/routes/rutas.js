@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db");
+const db = require("../db"); // Este ya es el pool con promesas
 const axios = require("axios");
 
 // Endpoint para generar ruta óptima usando Mapbox Directions
@@ -17,13 +17,15 @@ router.post("/ruta", async (req, res) => {
     if (/^\d+$/.test(String(id_edificio))) {
       // Buscar por ID entero
       const id = parseInt(id_edificio, 10);
-      [edificioRows] = await db.promise().query(
+      // CAMBIO: Se quitó .promise()
+      [edificioRows] = await db.query(
         "SELECT ST_X(ST_Centroid(ubicacion)) AS lon, ST_Y(ST_Centroid(ubicacion)) AS lat FROM edificios WHERE id = ?",
         [id]
       );
     } else {
       // Buscar por nombre del edificio
-      [edificioRows] = await db.promise().query(
+      // CAMBIO: Se quitó .promise()
+      [edificioRows] = await db.query(
         "SELECT ST_X(ST_Centroid(ubicacion)) AS lon, ST_Y(ST_Centroid(ubicacion)) AS lat FROM edificios WHERE nombre = ?",
         [id_edificio]
       );
@@ -66,7 +68,6 @@ router.post("/ruta", async (req, res) => {
         },
       ],
     });
-
   } catch (error) {
     console.error("Error generando ruta Mapbox:", error.message);
     res.status(500).json({ error: "Error generando ruta", detalles: error.message });
