@@ -19,7 +19,6 @@ router.post("/entrada", async (req, res) => {
 
     return res.status(201).json({ mensaje: "Entrada registrada correctamente." });
   } catch (error) {
-    
     console.error("Error en /asistencia/entrada:", error.message || error);;
     return res.status(500).json({ error: "Error al registrar la entrada" });
   }
@@ -102,4 +101,37 @@ router.get("/:id_usuario/:id_materia", async (req, res) => {
   }
 });
 
-module.exports = router;
+// POST /asistencia/verificar_ubicacion
+// Esta ruta SÍ recibe el ID del edificio y las coordenadas
+router.post("/verificar_ubicacion", async (req, res) => {
+  try {
+    const { id_edificio, latitud, longitud } = req.body;
+
+    if (!id_edificio || !latitud || !longitud) {
+      return res.status(400).json({ error: "Faltan parámetros." });
+    }
+
+    const userLocationPoint = `POINT(${longitud} ${latitud})`;
+
+    const sql = `
+        SELECT ST_Contains(E.ubicacion, ST_GeomFromText(?, ?)) AS esta_dentro
+        FROM Edificios E
+        WHERE E.id = ?;
+      `;
+
+    const [result] = await db.query(sql, [userLocationPoint, 4326, id_edificio]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Edificio no encontrado." });
+    }
+
+    // Devolvemos 'true' si esta_dentro es 1, o 'false' si es 0
+    res.json({ dentro: result[0].esta_dentro === 1 });
+
+  } catch (error) {
+    console.error("Error en /verificar_ubicacion:", error);
+    res.status(500).json({ error: "Error al verificar ubicación." });
+  }
+});
+
+module.exports = router; // SOLO UNO AL FINAL
