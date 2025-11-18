@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 ///
 /// ⚙️ Si usas dispositivo físico:0
 ///   usa tu IP local, ej. `192.168.1.105:3000`
-const String _baseUrl = 'http://10.41.55.194:3000';
+const String _baseUrl = 'http://10.0.2.2:3000';
 
 class ApiService {
   /// --------------------------

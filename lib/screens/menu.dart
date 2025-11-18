@@ -9,6 +9,7 @@ import 'package:nexus_ar/screens/inicio_sesion.dart';
 import 'package:nexus_ar/screens/mi_perfil.dart';
 import 'package:nexus_ar/screens/map_screen.dart'; // ✅ Import del mapa
 import 'package:nexus_ar/screens/asistencia.dart'; // ✅ Import de Asistencia
+import 'package:nexus_ar/screens/logros.dart';
 
 class MenuScreen extends StatefulWidget {
   final int initialIndex;
@@ -76,11 +77,14 @@ class _MenuScreenState extends State<MenuScreen> {
       return;
     }
 
-    // ⬅️ Otros botones cambian el contenido dentro del menú
-    setState(() {
-      _selectedIndex = index;
-      _isInitialLoad = false;
-    });
+    if (index == 2) {
+      Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (context) => const LogrosScreen())
+        );
+    }
+
+    
   }
 
   // 🔹 Navegar a pantalla de ayuda
