@@ -13,9 +13,16 @@ class LogrosScreen extends StatefulWidget {
 }
 
 class _LogrosScreenState extends State<LogrosScreen> {
+  // Estas variables simulan la "n". 
+  // Aquí cargarías los datos reales de tu base de datos o SharedPreferences
+  int contadorPuntualidad = 0; 
+  int contadorAsistencia = 0;
+
   @override
   void initState() {
     super.initState();
+    // Aquí podrías llamar a una función para obtener los contadores reales
+    // _cargarContadores();
   }
 
   @override
@@ -30,6 +37,13 @@ class _LogrosScreenState extends State<LogrosScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       fixedSize: const Size(240, 120),
       elevation: 6,
+    );
+
+    // Estilo común para el texto debajo de los botones
+    final TextStyle labelStyle = const TextStyle(
+      color: Colors.white,
+      fontSize: 14, // Tamaño ajustado para que quepa bien
+      fontWeight: FontWeight.bold,
     );
 
     return Scaffold(
@@ -59,14 +73,16 @@ class _LogrosScreenState extends State<LogrosScreen> {
             child: Center(
               child: Column(
                 children: [
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 60), // Reduje un poco este espacio inicial
+
+                  // --- BOTÓN 1: PUNTUALIDAD ---
                   ElevatedButton(
                     style: purpleButtonStyle,
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => LogrosPuntualidadScreen(),
+                          builder: (context) => const LogrosPuntualidadScreen(),
                         ),
                       );
                     },
@@ -80,8 +96,20 @@ class _LogrosScreenState extends State<LogrosScreen> {
                       ),
                     ),
                   ),
+                  
+                  const SizedBox(height: 10), // Pequeño espacio entre botón y texto
 
-                  const SizedBox(height: 206),
+                  // --- TEXTO 1 ---
+                  Text(
+                    "Contador de Asistencias\nPerfectas Seguidas: $contadorPuntualidad",
+                    textAlign: TextAlign.center,
+                    style: labelStyle,
+                  ),
+
+                  // Espacio entre secciones (Reduje de 206 a 80 para que se vea mejor)
+                  const SizedBox(height: 80),
+
+                  // --- BOTÓN 2: ASISTENCIA ---
                   ElevatedButton(
                     style: purpleButtonStyle,
                     onPressed: () {
@@ -102,6 +130,16 @@ class _LogrosScreenState extends State<LogrosScreen> {
                       ),
                     ),
                   ),
+                  
+                  const SizedBox(height: 10),
+
+                  // --- TEXTO 2 ---
+                  Text(
+                    "Contador de Asistencias\nCompletadas Seguidas: $contadorAsistencia",
+                    textAlign: TextAlign.center,
+                    style: labelStyle,
+                  ),
+
                   const Spacer(),
                 ],
               ),
