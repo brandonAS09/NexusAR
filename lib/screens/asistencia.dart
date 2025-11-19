@@ -22,6 +22,8 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
   String? _userEmail;
   int? _sessionUserId;
   int? _currentMateriaId;
+  int? _currentEdificioId; // <-- NUEVO: Guardamos el ID del edificio
+  int? _duracionClaseMinutos; // <-- NUEVO: Para el cronómetro (opcional visualmente)
   DateTime? _horaFinClase;
   bool _isUsuarioDentro = false;
   Timer? _periodicTimer;
@@ -88,6 +90,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
       return;
     }
 
+    // 1. Pedir permisos de ubicación ANTES de todo
     final hasPermission = await _handleLocationPermission();
     if (!hasPermission) {
       await AsistenciaDialogs.showError(
@@ -98,6 +101,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
       return;
     }
 
+    // 2. Escanear QR
     final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const ScanQrScreen()),
@@ -107,19 +111,39 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
     final String codigoSalon = result.trim();
 
     try {
-      final resp = await _service.obtenerHorario(codigoSalon, _userEmail!);
+      // 3. OBTENER GPS ACTUAL (Requisito nuevo del backend)
+      // Debemos enviar la ubicación junto con el código QR para la validación inicial
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
 
+      // 4. Llamar al endpoint /horario enviando lat/lon
+      final resp = await _service.obtenerHorario(
+        codigoSalon, 
+        _userEmail!, 
+        position.latitude, 
+        position.longitude
+      );
+
+      // Manejo de Errores
       if (resp['statusCode'] != 200 || resp['body'] == null) {
-        final msg = resp['body']?['error'] ?? 'No se encontró una clase activa para este salón.';
-        await AsistenciaDialogs.showError(context, 'Error de Horario', msg);
+        final msg = resp['body']?['error'] ?? 'Error desconocido.';
+        
+        // Manejo específico del Error 403 (Fuera de rango)
+        if (resp['statusCode'] == 403) {
+             await AsistenciaDialogs.showError(context, 'Ubicación Inválida', msg);
+        } else {
+             await AsistenciaDialogs.showError(context, 'Error de Horario', msg);
+        }
         return;
       }
 
+      // 5. Procesar Respuesta Exitosa
       final body = resp['body']!;
       final int idUsuario = body['usuario'];
       final int idMateria = body['id_materia'];
-      final String horaFinStr = body['horario']['hora_fin'];
+      final int idEdificio = body['id_edificio']; // <-- NUEVO: Guardar esto
+      // final int duracionClase = body['duracion_clase']; // Opcional guardar
 
+      final String horaFinStr = body['horario']['hora_fin'];
       final now = DateTime.now();
       final hf = horaFinStr.split(":");
       final horaFin = DateTime(now.year, now.month, now.day, int.parse(hf[0]), int.parse(hf[1]), int.parse(hf[2]));
@@ -133,21 +157,32 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
         return;
       }
 
+      // 6. Iniciar Sesión de Asistencia (Entrada Inicial)
       await AsistenciaDialogs.showInitial(context);
+      
+      // Registrar entrada en BD (Login)
+      final nowIso = DateTime.now().toIso8601String();
+      await _service.registrarEntrada(
+          idUsuario: idUsuario,
+          idMateria: idMateria,
+          timestamp: nowIso,
+      );
 
       setState(() {
         _inProgress = true;
         _currentMateriaId = idMateria;
+        _currentEdificioId = idEdificio; // <-- Guardamos el edificio para el chequeo periódico
         _horaFinClase = horaFin;
-        _isUsuarioDentro = false;
+        _isUsuarioDentro = true; // Asumimos true porque /horario ya validó que estamos dentro
         _sessionUserId = idUsuario;
       });
 
-      await _checkUbicacionYRegistrar();
+      // 7. Iniciar Timer Periódico
       _periodicTimer?.cancel();
       _periodicTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
         _checkUbicacionYRegistrar();
       });
+
     } catch (e) {
       await AsistenciaDialogs.showError(
         context,
@@ -158,7 +193,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
   }
 
   Future<void> _checkUbicacionYRegistrar() async {
-    if (_sessionUserId == null || _currentMateriaId == null) {
+    if (_sessionUserId == null || _currentMateriaId == null || _currentEdificioId == null) {
       _periodicTimer?.cancel();
       return;
     }
@@ -169,8 +204,15 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
     }
 
     try {
+      // 1. Obtener GPS actualizado
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      final resp = await _service.verificarUbicacion(position.latitude, position.longitude);
+      
+      // 2. Verificar ubicación enviando el ID DEL EDIFICIO
+      final resp = await _service.verificarUbicacion(
+        _currentEdificioId!, // Enviamos el ID que obtuvimos al inicio
+        position.latitude, 
+        position.longitude
+      );
 
       if (resp['statusCode'] != 200 || resp['body'] == null) {
         print("Error verificando ubicación, se reintentará.");
@@ -180,16 +222,20 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
       final bool dentroEdificio = resp['body']!['dentro'] == true;
       final nowIso = DateTime.now().toIso8601String();
 
+      // 3. Lógica de Entrada/Salida según respuesta
       if (dentroEdificio && !_isUsuarioDentro) {
-        print("Registrando ENTRADA");
+        // Estaba fuera, ahora entró -> Registrar Entrada
+        print("Re-Ingresando al aula");
         await _service.registrarEntrada(
           idUsuario: _sessionUserId!,
           idMateria: _currentMateriaId!,
           timestamp: nowIso,
         );
         setState(() => _isUsuarioDentro = true);
+
       } else if (!dentroEdificio && _isUsuarioDentro) {
-        print("Registrando SALIDA");
+        // Estaba dentro, ahora salió -> Registrar Salida
+        print("Saliendo del aula (Pausando)");
         await _service.registrarSalida(
           idUsuario: _sessionUserId!,
           idMateria: _currentMateriaId!,
@@ -197,6 +243,9 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
         );
         setState(() => _isUsuarioDentro = false);
       }
+      // Si (dentro && _isUsuarioDentro) -> Sigue todo bien, no hacer nada.
+      // Si (!dentro && !_isUsuarioDentro) -> Sigue fuera, no hacer nada.
+
     } catch (e) {
       print("Error en _checkUbicacionYRegistrar: $e");
     }
@@ -210,6 +259,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
       return;
     }
 
+    // Si terminamos y el usuario seguía dentro, cerramos su sesión
     if (_isUsuarioDentro) {
       await _service.registrarSalida(
         idUsuario: _sessionUserId!,
@@ -240,6 +290,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
     setState(() {
       _inProgress = false;
       _currentMateriaId = null;
+      _currentEdificioId = null;
       _horaFinClase = null;
       _isUsuarioDentro = false;
       _sessionUserId = null;
@@ -300,7 +351,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   const SizedBox(height: 206),
                   ElevatedButton(
                     style: purpleButtonStyle,
-                    onPressed: () {},
+                    onPressed: () {}, // Lógica de registro manual pendiente
                     child: const Text(
                       'Registro de\nAsistencias',
                       textAlign: TextAlign.center,

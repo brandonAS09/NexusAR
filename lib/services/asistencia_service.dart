@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-// Usamos tu IP. ¡Asegúrate de que tu celular esté en la misma red WiFi!
-const String _baseUrl = 'http://10.41.55.194:3000';
+// Asegúrate de que la IP sea la correcta
+const String _baseUrl = 'http://10.41.55.194:3000'; 
 
 class AsistenciaService {
 
-  // --- NUEVA FUNCIÓN ---
-  // Obtiene la materia, id de usuario y hora_fin de la clase.
-  // Requerida por el nuevo AsistenciaScreen.
-  Future<Map<String, dynamic>> obtenerHorario(String codigoSalon, String email) async {
-    final url = Uri.parse('$_baseUrl/horario');
+  // --- MODIFICADO (Punto 1 de la Guía) ---
+  // Ahora requiere latitud y longitud para validar "Guardia de Seguridad"
+  Future<Map<String, dynamic>> obtenerHorario(String codigoSalon, String email, double lat, double lon) async {
+    // OJO: La guía dice /api/horario, pero tu código usaba /horario.
+    // Ajusta esto según tu ruta real. Asumiré '/horario' basado en tu código previo.
+    final url = Uri.parse('$_baseUrl/horario'); 
     try {
       final response = await http.post(
         url,
@@ -18,6 +19,8 @@ class AsistenciaService {
         body: json.encode({
           'codigo': codigoSalon,
           'email': email,
+          'latitud': lat,   // <-- NUEVO: Requerido por el backend
+          'longitud': lon,  // <-- NUEVO: Requerido por el backend
         }),
       );
       return {
@@ -25,23 +28,22 @@ class AsistenciaService {
         'body': response.body.isNotEmpty ? json.decode(response.body) : null,
       };
     } catch (e) {
-      // Error de conexión (ej. servidor apagado o IP incorrecta)
       return {'statusCode': 500, 'body': {'error': 'Error de conexión: $e'}};
     }
   }
 
-  // --- NUEVA FUNCIÓN ---
-  // Verifica si las coordenadas están dentro del área de la clase.
-  // Requerida por el nuevo AsistenciaScreen.
-  Future<Map<String, dynamic>> verificarUbicacion(double lat, double lon) async {
-    final url = Uri.parse('$_baseUrl/ubicacion/verificar');
+  // --- MODIFICADO (Punto 2 de la Guía) ---
+  // Ahora requiere el id_edificio
+  Future<Map<String, dynamic>> verificarUbicacion(int idEdificio, double lat, double lon) async {
+    final url = Uri.parse('$_baseUrl/ubicacion/verificar'); // Verifica si la ruta cambió a /asistencia/verificar_ubicacion en el backend o sigue igual.
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'lat': lat,
-          'lon': lon,
+          'id_edificio': idEdificio, // <-- NUEVO: Requerido para saber qué polígono revisar
+          'latitud': lat,
+          'longitud': lon,
         }),
       );
       return {
@@ -53,9 +55,7 @@ class AsistenciaService {
     }
   }
 
-  // --- Tus funciones originales (Se mantienen igual) ---
-
-  // Registra la entrada: POST /asistencia/entrada
+  // --- SIN CAMBIOS ---
   Future<Map<String, dynamic>> registrarEntrada({
     required int idUsuario,
     required int idMateria,
@@ -78,7 +78,6 @@ class AsistenciaService {
     };
   }
 
-  // Registra la salida: POST /asistencia/salida
   Future<Map<String, dynamic>> registrarSalida({
     required int idUsuario,
     required int idMateria,
@@ -101,7 +100,6 @@ class AsistenciaService {
     };
   }
 
-  // Consulta el status final: GET /asistencia/:id_usuario/:id_materia
   Future<Map<String, dynamic>> consultarEstado({
     required int idUsuario,
     required int idMateria,
@@ -113,9 +111,4 @@ class AsistenciaService {
       'body': response.body.isNotEmpty ? json.decode(response.body) : null,
     };
   }
-
-  // --- FUNCIÓN ELIMINADA ---
-  // Future<int?> obtenerDuracionMateria(int idMateria) async { ... }
-  // Esta función ya no es necesaria porque el nuevo AsistenciaScreen
-  // obtiene la 'hora_fin' directamente desde el endpoint '/horario'.
 }
