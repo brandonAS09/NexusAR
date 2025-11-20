@@ -19,7 +19,7 @@ router.post("/entrada", async (req, res) => {
 
     return res.status(201).json({ mensaje: "Entrada registrada correctamente." });
   } catch (error) {
-    console.error("Error en /asistencia/entrada:", error.message || error);;
+    console.error("Error en /asistencia/entrada:", error && error.stack ? error.stack : error);
     return res.status(500).json({ error: "Error al registrar la entrada" });
   }
 });
@@ -51,7 +51,7 @@ router.post("/salida", async (req, res) => {
 
     return res.status(200).json({ mensaje: "Salida registrada correctamente" });
   } catch (error) {
-    console.error("Error /asistencia/salida:", error);
+    console.error("Error /asistencia/salida:", error && error.stack ? error.stack : error);
     return res.status(500).json({ error: "Error al registrar la salida." });
   }
 });
@@ -96,42 +96,78 @@ router.get("/:id_usuario/:id_materia", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error /asistencia/:id_usuario/:id_materia:", error);
+    console.error("Error /asistencia/:id_usuario/:id_materia:", error && error.stack ? error.stack : error);
     return res.status(500).json({ error: "Error al calcular la asistencia." });
   }
 });
 
 // POST /asistencia/verificar_ubicacion
-// Esta ruta SÍ recibe el ID del edificio y las coordenadas
+// Body: { id_edificio, latitud, longitud }
 router.post("/verificar_ubicacion", async (req, res) => {
   try {
     const { id_edificio, latitud, longitud } = req.body;
 
-    if (!id_edificio || !latitud || !longitud) {
+    if (!id_edificio || latitud == null || longitud == null) {
       return res.status(400).json({ error: "Faltan parámetros." });
     }
 
     const userLocationPoint = `POINT(${longitud} ${latitud})`;
 
     const sql = `
-        SELECT ST_Contains(E.ubicacion, ST_GeomFromText(?, ?)) AS esta_dentro
-        FROM Edificios E
-        WHERE E.id = ?;
-      `;
+      SELECT 
+        E.nombre AS nombre_edificio,
+        ST_Contains(E.ubicacion, ST_GeomFromText(?, 4326)) AS esta_dentro,
+        ST_Distance_Sphere(ST_Centroid(E.ubicacion), ST_GeomFromText(?, 4326)) AS distancia_metros,
+        ST_SRID(E.ubicacion) AS srid,
+        ST_AsText(E.ubicacion) AS wkt
+      FROM edificios E
+      WHERE E.id = ?;
+    `;
 
-    const [result] = await db.query(sql, [userLocationPoint, 4326, id_edificio]);
+    const [result] = await db.query(sql, [userLocationPoint, userLocationPoint, id_edificio]);
 
-    if (result.length === 0) {
+    if (!result || result.length === 0) {
       return res.status(404).json({ error: "Edificio no encontrado." });
     }
 
-    // Devolvemos 'true' si esta_dentro es 1, o 'false' si es 0
-    res.json({ dentro: result[0].esta_dentro === 1 });
+    const info = result[0];
+    let dentro = (info.esta_dentro === 1 || info.esta_dentro === true);
+    
+    // AJUSTE: Reducimos el radio a 20 metros para que detecte "fuera" más rápido en pruebas
+    const radius = 20;
+
+    const distancia = info.distancia_metros != null ? Number(info.distancia_metros) : null;
+
+    // Fallback por distancia
+    if (!dentro) {
+      if (distancia != null && distancia <= radius) {
+        dentro = true;
+      }
+    }
+
+    console.log(`📡 Verificación GPS: Distancia ${distancia?.toFixed(2)}m (Radio ${radius}m) -> ${dentro ? 'DENTRO ✅' : 'FUERA ❌'}`);
+
+    // CORRECCIÓN CRÍTICA:
+    // Si está fuera, devolvemos 403. Esto asegura que tu Flutter entre al bloque 'else if (resp['statusCode'] == 403)'
+    if (!dentro) {
+      return res.status(403).json({
+        dentro: false,
+        mensaje: `Estás fuera del rango (${distancia?.toFixed(1)}m > ${radius}m)`,
+        distancia_metros: distancia,
+        geofence_radius_m: radius
+      });
+    }
+
+    return res.json({
+      dentro: true,
+      distancia_metros: distancia,
+      geofence_radius_m: radius
+    });
 
   } catch (error) {
-    console.error("Error en /verificar_ubicacion:", error);
-    res.status(500).json({ error: "Error al verificar ubicación." });
+    console.error("Error en /verificar_ubicacion:", error && error.stack ? error.stack : error);
+    return res.status(500).json({ error: "Error al verificar ubicación." });
   }
 });
 
-module.exports = router; // SOLO UNO AL FINAL
+module.exports = router;

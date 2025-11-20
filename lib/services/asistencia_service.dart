@@ -1,81 +1,98 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-// Asegúrate de que la IP sea la correcta
-const String _baseUrl = 'http://10.41.55.194:3000'; 
+const String _baseUrl = 'http://10.41.55.194:3000'; // Ajusta si tu servidor usa otra IP/puerto
+const Duration _httpTimeout = Duration(seconds: 10);
 
 class AsistenciaService {
-
-  // --- MODIFICADO (Punto 1 de la Guía) ---
-  // Ahora requiere latitud y longitud para validar "Guardia de Seguridad"
-  Future<Map<String, dynamic>> obtenerHorario(String codigoSalon, String email, double lat, double lon) async {
-    // OJO: La guía dice /api/horario, pero tu código usaba /horario.
-    // Ajusta esto según tu ruta real. Asumiré '/horario' basado en tu código previo.
-    final url = Uri.parse('$_baseUrl/horario'); 
+  // Solicita al backend la validación de geofence + horario y devuelve el body decodificado.
+  // Body enviado: { codigo, email, latitud, longitud }
+  Future<Map<String, dynamic>> obtenerHorario(
+      String codigoSalon, String email, double lat, double lon) async {
+    final url = Uri.parse('$_baseUrl/horario');
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'codigo': codigoSalon,
-          'email': email,
-          'latitud': lat,   // <-- NUEVO: Requerido por el backend
-          'longitud': lon,  // <-- NUEVO: Requerido por el backend
-        }),
-      );
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'codigo': codigoSalon,
+              'email': email,
+              'latitud': lat,
+              'longitud': lon,
+            }),
+          )
+          .timeout(_httpTimeout);
       return {
         'statusCode': response.statusCode,
         'body': response.body.isNotEmpty ? json.decode(response.body) : null,
       };
     } catch (e) {
-      return {'statusCode': 500, 'body': {'error': 'Error de conexión: $e'}};
+      return {
+        'statusCode': 500,
+        'body': {'error': 'Error de conexión al obtener horario: $e'}
+      };
     }
   }
 
-  // --- MODIFICADO (Punto 2 de la Guía) ---
-  // Ahora requiere el id_edificio
-  Future<Map<String, dynamic>> verificarUbicacion(int idEdificio, double lat, double lon) async {
-    final url = Uri.parse('$_baseUrl/ubicacion/verificar'); // Verifica si la ruta cambió a /asistencia/verificar_ubicacion en el backend o sigue igual.
+  // Verifica si una lat/lon están dentro del geofence del edificio (usa el endpoint del backend)
+  // Request body: { id_edificio, latitud, longitud }
+  Future<Map<String, dynamic>> verificarUbicacion(
+      int idEdificio, double lat, double lon) async {
+    // Observa que el backend que tienes expone /asistencia/verificar_ubicacion
+    final url = Uri.parse('$_baseUrl/asistencia/verificar_ubicacion');
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'id_edificio': idEdificio, // <-- NUEVO: Requerido para saber qué polígono revisar
-          'latitud': lat,
-          'longitud': lon,
-        }),
-      );
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'id_edificio': idEdificio,
+              'latitud': lat,
+              'longitud': lon,
+            }),
+          )
+          .timeout(_httpTimeout);
       return {
         'statusCode': response.statusCode,
         'body': response.body.isNotEmpty ? json.decode(response.body) : null,
       };
     } catch (e) {
-      return {'statusCode': 500, 'body': {'error': 'Error de conexión: $e'}};
+      return {
+        'statusCode': 500,
+        'body': {'error': 'Error de conexión al verificar ubicación: $e'}
+      };
     }
   }
 
-  // --- SIN CAMBIOS ---
   Future<Map<String, dynamic>> registrarEntrada({
     required int idUsuario,
     required int idMateria,
     required String timestamp,
   }) async {
     final url = Uri.parse('$_baseUrl/asistencia/entrada');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'id_usuario': idUsuario,
-        'id_materia': idMateria,
-        'timestamp': timestamp,
-      }),
-    );
-
-    return {
-      'statusCode': response.statusCode,
-      'body': response.body.isNotEmpty ? json.decode(response.body) : null,
-    };
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'id_usuario': idUsuario,
+              'id_materia': idMateria,
+              'timestamp': timestamp,
+            }),
+          )
+          .timeout(_httpTimeout);
+      return {
+        'statusCode': response.statusCode,
+        'body': response.body.isNotEmpty ? json.decode(response.body) : null,
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'body': {'error': 'Error de conexión al registrar entrada: $e'}
+      };
+    }
   }
 
   Future<Map<String, dynamic>> registrarSalida({
@@ -84,20 +101,28 @@ class AsistenciaService {
     required String timestamp,
   }) async {
     final url = Uri.parse('$_baseUrl/asistencia/salida');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'id_usuario': idUsuario,
-        'id_materia': idMateria,
-        'timestamp': timestamp,
-      }),
-    );
-
-    return {
-      'statusCode': response.statusCode,
-      'body': response.body.isNotEmpty ? json.decode(response.body) : null,
-    };
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'id_usuario': idUsuario,
+              'id_materia': idMateria,
+              'timestamp': timestamp,
+            }),
+          )
+          .timeout(_httpTimeout);
+      return {
+        'statusCode': response.statusCode,
+        'body': response.body.isNotEmpty ? json.decode(response.body) : null,
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'body': {'error': 'Error de conexión al registrar salida: $e'}
+      };
+    }
   }
 
   Future<Map<String, dynamic>> consultarEstado({
@@ -105,10 +130,34 @@ class AsistenciaService {
     required int idMateria,
   }) async {
     final url = Uri.parse('$_baseUrl/asistencia/$idUsuario/$idMateria');
-    final response = await http.get(url);
-    return {
-      'statusCode': response.statusCode,
-      'body': response.body.isNotEmpty ? json.decode(response.body) : null,
-    };
+    try {
+      final response = await http.get(url).timeout(_httpTimeout);
+      return {
+        'statusCode': response.statusCode,
+        'body': response.body.isNotEmpty ? json.decode(response.body) : null,
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'body': {'error': 'Error de conexión al consultar estado: $e'}
+      };
+    }
+  }
+
+  // Opcional: obtener duración de la materia desde backend (si existe endpoint)
+  Future<int?> obtenerDuracionMateria(int idMateria) async {
+    final url = Uri.parse('$_baseUrl/materias/$idMateria');
+    try {
+      final response = await http.get(url).timeout(_httpTimeout);
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final data = json.decode(response.body);
+        if (data != null && data['duracion_minutos'] != null) {
+          return (data['duracion_minutos'] as num).toInt();
+        }
+      }
+    } catch (e) {
+      // Ignorar y devolver null para usar el default en el cliente
+    }
+    return null;
   }
 }
