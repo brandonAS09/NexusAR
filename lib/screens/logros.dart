@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nexus_ar/core/app_colors.dart';
 import 'package:nexus_ar/screens/logros_puntualidad.dart';
 import 'package:nexus_ar/screens/menu.dart';
 import 'package:nexus_ar/screens/logros_asistencia.dart';
+import 'package:nexus_ar/services/logros_service.dart';
 
 class LogrosScreen extends StatefulWidget {
   const LogrosScreen({super.key});
@@ -13,21 +15,47 @@ class LogrosScreen extends StatefulWidget {
 }
 
 class _LogrosScreenState extends State<LogrosScreen> {
-  // Estas variables simulan la "n". 
-  // Aquí cargarías los datos reales de tu base de datos o SharedPreferences
-  int contadorPuntualidad = 0; 
-  int contadorAsistencia = 0;
+  final LogrosService _service = LogrosService();
+
+  // Contadores
+  int contadorPuntualidad = 0; // Placeholder (Backend no provisto para este)
+  int contadorAsistencia = 0;  // Este será la "Racha" real del backend
+  
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Aquí podrías llamar a una función para obtener los contadores reales
-    // _cargarContadores();
+    _cargarContadores();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  Future<void> _cargarContadores() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? email = prefs.getString('email_usuario');
+
+      if (email != null) {
+        // 1. Obtener ID a partir del email
+        final int? idUsuario = await _service.obtenerIdPorEmail(email);
+        
+        if (idUsuario != null) {
+          // 2. Obtener Racha usando el ID
+          final resultado = await _service.obtenerRacha(idUsuario);
+          
+          if (mounted && resultado['success'] == true) {
+            setState(() {
+              contadorAsistencia = resultado['racha'];
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error cargando logros: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -39,10 +67,9 @@ class _LogrosScreenState extends State<LogrosScreen> {
       elevation: 6,
     );
 
-    // Estilo común para el texto debajo de los botones
     final TextStyle labelStyle = const TextStyle(
       color: Colors.white,
-      fontSize: 14, // Tamaño ajustado para que quepa bien
+      fontSize: 14,
       fontWeight: FontWeight.bold,
     );
 
@@ -67,86 +94,87 @@ class _LogrosScreenState extends State<LogrosScreen> {
           },
         ),
       ),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 60), // Reduje un poco este espacio inicial
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+        : Stack(
+          children: [
+            SafeArea(
+              child: Center(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 60),
 
-                  // --- BOTÓN 1: PUNTUALIDAD ---
-                  ElevatedButton(
-                    style: purpleButtonStyle,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LogrosPuntualidadScreen(),
+                    // --- BOTÓN 1: PUNTUALIDAD ---
+                    ElevatedButton(
+                      style: purpleButtonStyle,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LogrosPuntualidadScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Logros de Puntualidad',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Logros de Puntualidad',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 10), // Pequeño espacio entre botón y texto
+                    
+                    const SizedBox(height: 10),
 
-                  // --- TEXTO 1 ---
-                  Text(
-                    "Contador de Asistencias\nPerfectas Seguidas: $contadorPuntualidad",
-                    textAlign: TextAlign.center,
-                    style: labelStyle,
-                  ),
-
-                  // Espacio entre secciones (Reduje de 206 a 80 para que se vea mejor)
-                  const SizedBox(height: 80),
-
-                  // --- BOTÓN 2: ASISTENCIA ---
-                  ElevatedButton(
-                    style: purpleButtonStyle,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LogrosAsistenciaScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Logros de Asistencia',
+                    // --- TEXTO 1 (Puntualidad) ---
+                    Text(
+                      "Contador de Asistencias\nPerfectas Seguidas: $contadorPuntualidad",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                      style: labelStyle,
+                    ),
+
+                    const SizedBox(height: 80),
+
+                    // --- BOTÓN 2: ASISTENCIA (RACHA) ---
+                    ElevatedButton(
+                      style: purpleButtonStyle,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LogrosAsistenciaScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Logros de Asistencia',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 10),
+                    
+                    const SizedBox(height: 10),
 
-                  // --- TEXTO 2 ---
-                  Text(
-                    "Contador de Asistencias\nCompletadas Seguidas: $contadorAsistencia",
-                    textAlign: TextAlign.center,
-                    style: labelStyle,
-                  ),
+                    // --- TEXTO 2 (Asistencia/Racha) ---
+                    Text(
+                      "Contador de Asistencias\nCompletadas Seguidas: $contadorAsistencia",
+                      textAlign: TextAlign.center,
+                      style: labelStyle,
+                    ),
 
-                  const Spacer(),
-                ],
+                    const Spacer(),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
     );
   }
 }

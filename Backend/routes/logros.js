@@ -2,8 +2,24 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
+// --- NUEVO: Obtener ID por Email (Para facilitar la integración) ---
+router.get("/usuario/:email", async (req, res) => {
+    try {
+        const { email } = req.params;
+        const sql = "SELECT id_usuario FROM Usuarios WHERE CorreoUsuario = ?";
+        const [result] = await db.query(sql, [email]);
 
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+        return res.json({ id_usuario: result[0].id_usuario });
+    } catch (err) {
+        console.error("Error obteniendo usuario:", err);
+        return res.status(500).json({ error: "Error servidor" });
+    }
+});
 
+// POST: Actualizar/Iniciar Racha
 router.post("/racha", async (req, res) => {
     try {
         const { id_usuario } = req.body;
@@ -12,6 +28,7 @@ router.post("/racha", async (req, res) => {
             return res.status(400).json({ error: "No se ingreso el id del usuario" });
         }
 
+        // Verificamos si ya existe registro de racha para este usuario
         const sqlCheck = `
             SELECT 
                 id_usuario, 
@@ -24,8 +41,8 @@ router.post("/racha", async (req, res) => {
         const [result] = await db.query(sqlCheck, [id_usuario]);
 
         if (result.length === 0) {
-            const sqlInsert = "INSERT INTO LogrosRacha (id_usuario, racha,ultima_racha) VALUES (?,1,NOW())"
-
+            // Primera vez
+            const sqlInsert = "INSERT INTO LogrosRacha (id_usuario, racha, ultima_racha) VALUES (?, 1, NOW())";
             const [insertResult] = await db.query(sqlInsert, [id_usuario]);
 
             return res.status(201).json({
@@ -33,12 +50,12 @@ router.post("/racha", async (req, res) => {
                 racha_actual: 1,
                 insertResult: insertResult.insertId
             });
-        }
-        else {
+        } else {
             const datos = result[0];
             const diasPasados = datos.dias_pasados;
             const racha = datos.racha;
 
+            // Si ya se actualizó hoy (dias_pasados == 0), no hacemos nada
             if (diasPasados === 0) {
                 return res.status(200).json({
                     mensaje: "Racha ya actualizada hoy. ¡Sigue así!",
@@ -46,6 +63,9 @@ router.post("/racha", async (req, res) => {
                 });
             }
 
+            // Lógica de Racha:
+            // Si pasó 1 día (ayer a hoy), sumamos 1.
+            // Si pasaron más de 1 día, reiniciamos a 1.
             let nuevaRacha = 1;
             if (diasPasados === 1) {
                 nuevaRacha = racha + 1;
@@ -66,12 +86,12 @@ router.post("/racha", async (req, res) => {
         }
 
     } catch (err) {
-        console.error("Error en /logros", err);
+        console.error("Error en /logros/racha", err);
         return res.status(500).json({ error: "Error en el servidor " });
     }
-})
+});
 
-
+// GET: Obtener Racha Actual
 router.get("/obtenerRacha/:id_usuario", async (req, res) => {
     try {
         const { id_usuario } = req.params;
@@ -81,7 +101,6 @@ router.get("/obtenerRacha/:id_usuario", async (req, res) => {
         }
 
         const sqlCheck = "SELECT racha FROM LogrosRacha WHERE id_usuario = ?";
-
         const [result] = await db.query(sqlCheck, [id_usuario]);
 
         if (result.length === 0) {
@@ -93,10 +112,10 @@ router.get("/obtenerRacha/:id_usuario", async (req, res) => {
 
         return res.status(200).json({ racha_actual: result[0].racha });
 
-    }catch(err){
+    } catch (err) {
         console.error(err);
-        return res.status(500).json({error: "Error en el servidor",err});
+        return res.status(500).json({ error: "Error en el servidor", err });
     }
-})
+});
 
 module.exports = router;
