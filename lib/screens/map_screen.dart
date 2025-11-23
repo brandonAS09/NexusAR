@@ -7,6 +7,7 @@ import 'package:nexus_ar/components/rutas_boton.dart';
 import 'package:nexus_ar/services/ruta_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
+import 'package:nexus_ar/screens/ar.dart'; // <--- 1. NUEVO IMPORT
 
 const Color kMorado = Color(0xFFB097F1);
 
@@ -46,22 +47,15 @@ class _MapScreenState extends State<MapScreen> {
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Permiso de GPS denegado')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permiso de GPS denegado')));
+      }
       return;
     }
     try {
-      Position pos = await Geolocator.getCurrentPosition();
-      print("🌎 Primera ubicación: (${pos.latitude}, ${pos.longitude})");
-      // Para centrar el mapa al iniciar, descomenta esto:
-      // await mapboxMap?.flyTo(
-      //   mb.CameraOptions(
-      //     center: mb.Point(coordinates: mb.Position(pos.longitude, pos.latitude)),
-      //     zoom: 17.0,
-      //   ),
-      //   mb.MapAnimationOptions(duration: 1500),
-      // );
+      // Position pos = await Geolocator.getCurrentPosition();
+      // print("🌎 Primera ubicación: (${pos.latitude}, ${pos.longitude})");
     } catch (e) {
       print("❌ Error obteniendo ubicación: $e");
     }
@@ -89,31 +83,32 @@ class _MapScreenState extends State<MapScreen> {
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Permiso de GPS denegado')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permiso de GPS denegado')));
+      }
       return;
     }
     _posSub?.cancel();
-    _posSub =
-        Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(distanceFilter: 8),
-        ).listen(
-          (Position pos) {
-            _onLocationUpdate(pos, destLat, destLon);
-          },
-          onError: (error) {
-            print('❌ Error al obtener la ubicación en tiempo real: $error');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                backgroundColor: Colors.redAccent,
-                content: Text('Se apagó el GPS. Actívalo para continuar.'),
-              ),
-            );
-            _posSub
-                ?.cancel(); // Detener el stream para que no salga más errores
-          },
-        );
+    _posSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(distanceFilter: 8),
+    ).listen(
+      (Position pos) {
+        _onLocationUpdate(pos, destLat, destLon);
+      },
+      onError: (error) {
+        print('❌ Error al obtener la ubicación en tiempo real: $error');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Text('Se apagó el GPS. Actívalo para continuar.'),
+            ),
+          );
+        }
+        _posSub?.cancel();
+      },
+    );
   }
 
   void _onLocationUpdate(Position userPos, double destLat, double destLon) {
@@ -147,7 +142,6 @@ class _MapScreenState extends State<MapScreen> {
           closestIdx = i;
         }
       }
-      print("🔎 Closest point index: $closestIdx, minDist: $minDist");
       _redibujarRutaDesde(closestIdx);
     }
   }
@@ -181,9 +175,6 @@ class _MapScreenState extends State<MapScreen> {
         speed: 0.0,
         speedAccuracy: 0.0,
       );
-      print(
-        "🚶 Simular recorrido index $_simIndex, posición simulada: $virtualPosition",
-      );
       _onLocationUpdate(virtualPosition, _destinoLat!, _destinoLon!);
       _simIndex++;
     });
@@ -195,7 +186,6 @@ class _MapScreenState extends State<MapScreen> {
         .sublist(idx)
         .map((p) => mb.Position(p[1], p[0]))
         .toList();
-    print("🆕 Redibujar ruta desde $idx: nuevos coords: $dynamicCoords");
 
     await polylineManager?.deleteAll();
     await polylineManager?.create(
@@ -206,13 +196,10 @@ class _MapScreenState extends State<MapScreen> {
         lineOpacity: 0.9,
       ),
     );
-    print("🔗 Línea actualizada");
-
     await pointManager?.deleteAll();
   }
 
   void _finalizaRuta(double destLat, double destLon) async {
-    print("🚩 FINALIZANDO RUTA en destino ($destLat, $destLon)");
     await polylineManager?.deleteAll();
     await pointManager?.deleteAll();
     setState(() {
@@ -222,20 +209,22 @@ class _MapScreenState extends State<MapScreen> {
     String pisoMsg =
         "Recordatorio: si el número del edificio comienza con 1, corresponde al primer piso; si comienza con 2, al segundo piso; si comienza con 3, al tercer piso; y así sucesivamente.";
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Has llegado a tu destino.'),
-        content: Text(pisoMsg),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Aceptar"),
-          ),
-        ],
-      ),
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Has llegado a tu destino.'),
+          content: Text(pisoMsg),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("Aceptar"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _rutaSeleccionada(String idEdificio) async {
@@ -251,16 +240,14 @@ class _MapScreenState extends State<MapScreen> {
         _destinoLon = null;
         _simulandoRecorrido = false;
       });
-      print("🚫 Selección de ruta: ninguna");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Se eliminó la ruta seleccionada')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Calculando ruta a $idEdificio...')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Calculando ruta a $idEdificio...')));
 
     try {
       final pos = await Geolocator.getCurrentPosition();
@@ -272,34 +259,29 @@ class _MapScreenState extends State<MapScreen> {
         lon: origenLon,
         idEdificio: idEdificio,
       );
-      print("📦 RUTA de $idEdificio recibida: ${ruta.length} puntos");
-      print("Contenido ruta: $ruta");
+
       if (ruta.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: const [
-                Icon(Icons.flutter_dash, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text('Ruta vacía recibida del servidor')),
-              ],
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ruta vacía recibida del servidor'),
+              backgroundColor: Colors.redAccent,
             ),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        print("❌ Ruta vacía");
+          );
+        }
         return;
       }
       if (ruta.length < 2) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'La ruta recibida es demasiado corta (${ruta.length} puntos). (Backend issue)',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'La ruta recibida es demasiado corta (${ruta.length} puntos).',
+              ),
+              backgroundColor: Colors.orange,
             ),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        print("❌ Ruta demasiado corta (${ruta.length} puntos): $ruta");
+          );
+        }
         return;
       }
       final first = ruta.first;
@@ -319,7 +301,6 @@ class _MapScreenState extends State<MapScreen> {
       await polylineManager?.deleteAll();
       await pointManager?.deleteAll();
       final coords = ruta.map((p) => mb.Position(p[1], p[0])).toList();
-      print("🔗 Polyline inicial coords: $coords");
       await polylineManager?.create(
         mb.PolylineAnnotationOptions(
           geometry: mb.LineString(coordinates: coords),
@@ -331,23 +312,20 @@ class _MapScreenState extends State<MapScreen> {
 
       _startLocationUpdates(_destinoLat!, _destinoLon!);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ruta recibida: ${ruta.length} puntos')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ruta recibida: ${ruta.length} puntos')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.flutter_dash, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Error al obtener la ruta: $e')),
-            ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al obtener la ruta: $e'),
+            backgroundColor: Colors.redAccent,
           ),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      print("❌ ERROR en rutaSeleccionada: $e");
+        );
+      }
     }
   }
 
@@ -486,9 +464,11 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  // --- 2. CAMBIO AQUI: Navegar a ArScreen ---
   void _startScanner() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Abriendo scanner de reconocimiento...')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ArScreen()),
     );
   }
 }

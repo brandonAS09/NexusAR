@@ -115,7 +115,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
       if (resp['statusCode'] != 200 || resp['body'] == null) {
         final msg = resp['body']?['error'] ?? 'Error desconocido.';
         if (resp['statusCode'] == 403) {
-          // Error de Geofence (Fuera del edificio)
+          // Error de Geofence
           await AsistenciaDialogs.showError(context, 'Ubicación Inválida', msg);
         } else {
           await AsistenciaDialogs.showError(context, 'Error de Horario', msg);

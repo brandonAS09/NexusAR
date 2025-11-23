@@ -14,6 +14,7 @@ const ubicacionRoutes = require('./routes/ubicacion');
 const authRoutes = require("./routes/auth");
 const rutas = require("./routes/rutas");
 const logres = require("./routes/logros");
+const ar = require("./routes/ar");
 
 // ✅ Middlewares (orden: cors -> bodyParser -> logger)
 app.use(cors());
@@ -27,6 +28,7 @@ app.use("/ubicacion", ubicacionRoutes);      // /ubicacion/... (si existe)
 app.use("/auth", authRoutes);
 app.use("/api", rutas);
 app.use("/logros",logres);
+app.use("/ar", ar);
 
 // Health-check simple
 app.get("/health", (req, res) => res.json({ ok: true }));

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 /// 🌐 Servicio de conexión con el backend Node.js
-const String _baseUrl = 'http://10.41.55.194:3000';
+const String _baseUrl = 'http://192.168.100.63:3000';
 
 class RutaService {
   /// --------------------------
