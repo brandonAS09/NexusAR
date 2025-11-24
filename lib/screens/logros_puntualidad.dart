@@ -14,7 +14,7 @@ class _LogrosPuntualidadScreenState extends State<LogrosPuntualidadScreen> {
   final List<Map<String, dynamic>> listaLogros = [
     {
       "texto": "5 Puntualidades\nPerfectas Seguidas",
-      "desbloqueado": true,
+      "desbloqueado": false,
       "imagen": "assets/images/Baby_Puntualidad5.png"
     },
     {

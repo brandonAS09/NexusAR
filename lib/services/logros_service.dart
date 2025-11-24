@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class LogrosService {
-  final String baseUrl = "http://192.168.100.63:3000/logros";
+  final String baseUrl = "http://10.41.55.194:3000/logros";
 
   /// 1. Obtener ID de usuario dado su correo (Helper)
   Future<int?> obtenerIdPorEmail(String email) async {

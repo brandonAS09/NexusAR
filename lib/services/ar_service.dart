@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 // Asegúrate de que esta IP sea la correcta de tu PC
-const String _baseUrl = 'http://192.168.100.63:3000';
+const String _baseUrl = 'http://10.41.55.194:3000';
 
 class ArService {
   Future<Map<String, dynamic>> obtenerInfoClase(String codigoQr) async {

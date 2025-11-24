@@ -14,7 +14,7 @@ class _LogrosAsistenciaScreenState extends State<LogrosAsistenciaScreen> {
   final List<Map<String, dynamic>> listaLogros = [
     {
       "texto": "5 Asistencias Completadas Seguidas",
-      "desbloqueado": true,
+      "desbloqueado": false,
       "imagen": "assets/images/Baby_Asistencia5.png"
     },
     {
