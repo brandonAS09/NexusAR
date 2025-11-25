@@ -142,15 +142,41 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
         return;
       }
 
-      // 5. Mostrar diálogo de inicio y registrar entrada en BD
+      // 5. Mostrar diálogo de inicio
       await AsistenciaDialogs.showInitial(context);
 
       final nowIso = DateTime.now().toIso8601String();
-      await _service.registrarEntrada(
+      
+      // REGISTRO DE ENTRADA Y FEEDBACK DE PUNTUALIDAD
+      final entradaResp = await _service.registrarEntrada(
         idUsuario: idUsuario,
         idMateria: idMateria,
         timestamp: nowIso,
       );
+
+      if (mounted) {
+          if (entradaResp['statusCode'] == 201 && entradaResp['body'] != null) {
+            final bool esPuntual = entradaResp['body']['puntual'] == true;
+            
+            // ¡AQUÍ ESTÁ LA MAGIA! 🎉
+            if (esPuntual) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: const [
+                      Icon(Icons.access_alarm, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text("¡Llegaste a tiempo! +1 Racha Puntualidad 🎯", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  backgroundColor: Colors.green[700],
+                  duration: const Duration(seconds: 4),
+                  behavior: SnackBarBehavior.floating,
+                )
+              );
+            }
+          }
+      }
 
       // --- CÁLCULO DEL CRONÓMETRO (80%) ---
       // Convertimos minutos a segundos y sacamos el 80%
@@ -311,6 +337,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
 
     String mensajeFinal = titulo;
     if (estadoResp['statusCode'] == 200 && estadoResp['body'] != null) {
+      // AQUÍ el backend enviará "Tu asistencia fue registrada... ¡Punto de asistencia sumado!"
       String msgBackend = estadoResp['body']!['mensaje'] ?? "";
       mensajeFinal = "$titulo\n\n$msgBackend";
     }

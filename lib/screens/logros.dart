@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nexus_ar/core/app_colors.dart';
-import 'package:nexus_ar/screens/logros_puntualidad.dart';
+import 'package:nexus_ar/screens/logros_puntualidad.dart'; 
 import 'package:nexus_ar/screens/menu.dart';
 import 'package:nexus_ar/screens/logros_asistencia.dart';
 import 'package:nexus_ar/services/logros_service.dart';
@@ -17,9 +17,8 @@ class LogrosScreen extends StatefulWidget {
 class _LogrosScreenState extends State<LogrosScreen> {
   final LogrosService _service = LogrosService();
 
-  // Contadores
-  int contadorPuntualidad = 0; // Placeholder (Backend no provisto para este)
-  int contadorAsistencia = 0;  // Este será la "Racha" real del backend
+  int contadorPuntualidad = 0; 
+  int contadorAsistencia = 0;  
   
   bool _isLoading = true;
 
@@ -44,7 +43,9 @@ class _LogrosScreenState extends State<LogrosScreen> {
           
           if (mounted && resultado['success'] == true) {
             setState(() {
-              contadorAsistencia = resultado['racha'];
+              // Actualizamos AMBOS contadores según el JSON del backend
+              contadorAsistencia = resultado['racha_asistencia'];
+              contadorPuntualidad = resultado['racha_puntualidad'];
             });
           }
         }
@@ -60,6 +61,7 @@ class _LogrosScreenState extends State<LogrosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Estilos reutilizables
     final ButtonStyle purpleButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: AppColors.botonInicioSesion,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -77,18 +79,13 @@ class _LogrosScreenState extends State<LogrosScreen> {
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         backgroundColor: AppColors.botonInicioSesion,
-        title: const Text(
-          "Mis Logros",
-          style: TextStyle(color: Colors.black, fontSize: 28),
-        ),
+        title: const Text("Mis Logros", style: TextStyle(color: Colors.black, fontSize: 28)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(
-                builder: (context) => const MenuScreen(initialIndex: 1),
-              ),
+              MaterialPageRoute(builder: (context) => const MenuScreen(initialIndex: 1)),
               (route) => false,
             );
           },
@@ -111,24 +108,23 @@ class _LogrosScreenState extends State<LogrosScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const LogrosPuntualidadScreen(),
+                            // PASAMOS LA RACHA ACTUAL COMO PARÁMETRO
+                            builder: (context) => LogrosPuntualidadScreen(
+                              rachaActual: contadorPuntualidad
+                            ),
                           ),
-                        );
+                        ).then((_) {
+                           // Opcional: Recargar al volver si quisieras refrescar datos
+                           _cargarContadores();
+                        });
                       },
                       child: const Text(
                         'Logros de Puntualidad',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    
                     const SizedBox(height: 10),
-
-                    // --- TEXTO 1 (Puntualidad) ---
                     Text(
                       "Contador de Asistencias\nPerfectas Seguidas: $contadorPuntualidad",
                       textAlign: TextAlign.center,
@@ -137,31 +133,29 @@ class _LogrosScreenState extends State<LogrosScreen> {
 
                     const SizedBox(height: 80),
 
-                    // --- BOTÓN 2: ASISTENCIA (RACHA) ---
+                    // --- BOTÓN 2: ASISTENCIA ---
                     ElevatedButton(
                       style: purpleButtonStyle,
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const LogrosAsistenciaScreen(),
+                            // PASAMOS LA RACHA ACTUAL COMO PARÁMETRO
+                            builder: (context) => LogrosAsistenciaScreen(
+                              rachaActual: contadorAsistencia
+                            ),
                           ),
-                        );
+                        ).then((_) {
+                           _cargarContadores();
+                        });
                       },
                       child: const Text(
                         'Logros de Asistencia',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    
                     const SizedBox(height: 10),
-
-                    // --- TEXTO 2 (Asistencia/Racha) ---
                     Text(
                       "Contador de Asistencias\nCompletadas Seguidas: $contadorAsistencia",
                       textAlign: TextAlign.center,

@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class LogrosService {
-  final String baseUrl = "http://10.41.55.194:3000/logros";
+  // Asegúrate de usar la IP correcta
+  final String baseUrl = "http://10.41.55.194:3000/logros"; 
 
-  /// 1. Obtener ID de usuario dado su correo (Helper)
+  /// 1. Obtener ID de usuario dado su correo
   Future<int?> obtenerIdPorEmail(String email) async {
     try {
       final url = Uri.parse('$baseUrl/usuario/$email');
@@ -21,7 +22,7 @@ class LogrosService {
     }
   }
 
-  /// 2. Obtener la racha actual
+  /// 2. Obtener las rachas actuales para mostrarlas en pantalla
   Future<Map<String, dynamic>> obtenerRacha(int idUsuario) async {
     try {
       final url = Uri.parse('$baseUrl/obtenerRacha/$idUsuario');
@@ -31,7 +32,8 @@ class LogrosService {
         final data = jsonDecode(response.body);
         return {
           'success': true,
-          'racha': data['racha_actual'] ?? 0,
+          'racha_asistencia': data['racha_asistencia'] ?? 0,
+          'racha_puntualidad': data['racha_puntualidad'] ?? 0,
           'mensaje': data['mensaje']
         };
       } else {
@@ -41,18 +43,7 @@ class LogrosService {
       return {'success': false, 'mensaje': 'Error de conexión: $e'};
     }
   }
-
-  /// 3. Actualizar/Iniciar Racha (Llamar cuando se confirma asistencia)
-  Future<void> actualizarRacha(int idUsuario) async {
-    try {
-      final url = Uri.parse('$baseUrl/racha');
-      await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"id_usuario": idUsuario}),
-      );
-    } catch (e) {
-      print("Error actualizando racha: $e");
-    }
-  }
+  
+  // NOTA: Se eliminaron registrarRachaAsistencia y registrarRachaPuntualidad
+  // porque ahora la lógica es automática en el backend.
 }
