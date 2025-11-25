@@ -3,7 +3,17 @@ const router = express.Router();
 const db = require("../db");
 
 
-
+async function registrarAsistenciaCompleta(id_usuario,id_materia){
+  try{
+    await db.query(
+      `INSERT INTO asistencias_completas (id_usuario,id_materia,fecha)
+      VALUES(?,?,NOW())`,
+      [id_usuario,id_materia]
+    )
+  }catch(error){
+    console.error("Error al registrar asistencia completa",error);
+  }
+}
 async function romperRacha(id_usuario,tipo){
   const colRacha = tipo ==='puntualidad' ? 'racha_puntualidad': 'racha_asistencia';
   const colUltima = tipo ==='puntualidad' ? 'ultima_puntualidad': 'ultima_asistencia';
@@ -224,7 +234,10 @@ router.get("/:id_usuario/:id_materia", async (req, res) => {
     const porcentaje = duracion && duracion > 0 ? (minutosTotales / duracion) * 100 : 0;
 
     if (porcentaje >= 80) {
+      
+
       await actualizarRacha(id_usuario, 'asistencia'); // Solo aquí se suma asistencia
+      await registrarAsistenciaCompleta(id_usuario,id_materia);//Helper para registrar la asistencia en la tabla de asistencias_completas en base de datos para historial de asistencias
 
       return res.json({
         exito: true,
