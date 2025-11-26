@@ -18,3 +18,4 @@ EXPOSE 3000
 
 # Arrancar la aplicación
 CMD ["node", "app.js"]
+
