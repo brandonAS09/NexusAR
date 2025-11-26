@@ -8,6 +8,7 @@ import 'package:nexus_ar/screens/menu.dart';
 import 'package:nexus_ar/screens/qr.dart';
 import 'package:nexus_ar/services/asistencia_service.dart';
 import 'package:nexus_ar/components/asistencia_dialogs.dart';
+import 'package:nexus_ar/screens/registro_asistencias.dart';
 
 class AsistenciaScreen extends StatefulWidget {
   const AsistenciaScreen({super.key});
@@ -412,7 +413,11 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   const SizedBox(height: 206),
                   ElevatedButton(
                     style: purpleButtonStyle,
-                    onPressed: () {}, // Funcionalidad futura
+                    onPressed: () {
+                      Navigator.push( context, 
+                      MaterialPageRoute(builder: (context) => const RegistroAsistenciasScreen())
+                      );
+                    }, // Funcionalidad futura
                     child: const Text(
                       'Registro de\nAsistencias',
                       textAlign: TextAlign.center,
