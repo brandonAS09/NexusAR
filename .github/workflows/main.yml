@@ -25,8 +25,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t ghcr.io/brandonas09/nexusar:latest .
+        run: docker build -t ghcr.io/brandonas09/nexusar:latest ./Backend
 
       - name: Push Docker image
         run: docker push ghcr.io/brandonas09/nexusar:latest
-
