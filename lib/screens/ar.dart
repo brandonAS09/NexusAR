@@ -1,4 +1,4 @@
-import 'dart:async'; // Necesario para los timers
+import 'dart:async';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -13,23 +13,19 @@ class ArScreen extends StatefulWidget {
   State<ArScreen> createState() => _ArScreenState();
 }
 
-class _ArScreenState extends State<ArScreen> {
+class _ArScreenState extends State<ArScreen> with WidgetsBindingObserver {
   final ArService _arService = ArService();
   
-  // --- CORRECCIÓN 1: DetectionSpeed.normal ---
-  // Cambiamos a 'normal' para que permita re-escanear el mismo código.
-  // Nosotros controlaremos la repetición manual con variables.
-  final MobileScannerController _cameraController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal, 
-    returnImage: false,
-    autoStart: false, 
-  );
+  // --- CAMBIO 1: Controlador NULLABLE (Para poder destruirlo y recrearlo) ---
+  MobileScannerController? _cameraController;
 
   bool _isLoading = false;
   bool _showCard = false;
-  bool _isCameraActive = true;
   
-  // Variable para evitar lecturas múltiples seguidas
+  // Esta variable controla si MOSTRAR el widget en el árbol
+  bool _isScannerMounted = false;
+  
+  // Enfriamiento del escáner
   bool _scanCooldown = false; 
 
   Map<String, dynamic>? _classData;
@@ -39,18 +35,62 @@ class _ArScreenState extends State<ArScreen> {
   @override
   void initState() {
     super.initState();
-    _cameraController.start();
+    // Registramos observador para manejar ciclo de vida de la app (minimizar/abrir)
+    WidgetsBinding.instance.addObserver(this);
+    _initializeScanner();
   }
 
   @override
   void dispose() {
-    _cameraController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
     super.dispose();
   }
 
+  // Manejo de ciclo de vida (si minimizas la app y vuelves)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_cameraController == null || !_isScannerMounted) return;
+
+    if (state == AppLifecycleState.inactive) {
+      _cameraController?.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _cameraController?.start();
+    }
+  }
+
+  // --- NUEVO: INICIALIZAR ESCÁNER ---
+  void _initializeScanner() {
+    setState(() {
+      _cameraController = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal, 
+        returnImage: false,
+        autoStart: false, 
+      );
+      _isScannerMounted = true;
+    });
+    // Pequeña espera para que el widget se monte antes de iniciar
+    Future.delayed(const Duration(milliseconds: 100), () {
+        _cameraController?.start();
+    });
+  }
+
+  // --- NUEVO: DESTRUIR ESCÁNER COMPLETAMENTE ---
+  Future<void> _disposeScanner() async {
+    setState(() {
+      _isScannerMounted = false; // Quita el widget de la pantalla
+    });
+    try {
+      await _cameraController?.stop();
+      // --- CORRECCIÓN AQUÍ: Quitamos 'await' porque dispose es void ---
+      _cameraController?.dispose(); 
+    } catch (e) {
+      debugPrint("Error cerrando cámara: $e");
+    }
+    _cameraController = null;
+  }
+
   Future<void> _onDetect(BarcodeCapture capture) async {
-    // --- CORRECCIÓN 2: Filtro manual ---
-    // Si ya mostramos carta o estamos en enfriamiento, ignoramos el evento
     if (_showCard || _scanCooldown) return;
 
     final List<Barcode> barcodes = capture.barcodes;
@@ -148,42 +188,38 @@ class _ArScreenState extends State<ArScreen> {
 
   Future<void> _navigateToRealAr() async {
     if (_classData != null) {
-      setState(() {
-        _isCameraActive = false;
-      });
-
-      await Future.delayed(const Duration(milliseconds: 300));
-      await _cameraController.stop();
+      
+      // 1. DESTRUIMOS EL ESCÁNER ANTES DE SALIR
+      // Esto libera la cámara totalmente para ARCore
+      await _disposeScanner();
 
       if (!mounted) return;
 
+      // 2. Navegamos
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => RealArScreen(classData: _classData!),
         ),
       );
 
-      // --- CORRECCIÓN 3: Pausa Crítica al Volver ---
+      // 3. AL VOLVER: Pausa de seguridad
       if (mounted) {
         debugPrint("🔄 Regresando de AR...");
         
-        // Esta espera es VITAL para que la app no se cierre.
-        // ARCore necesita tiempo para soltar la cámara antes de que Scanner la tome.
+        // Pausa para que ARCore suelte la cámara
         await Future.delayed(const Duration(milliseconds: 800));
 
+        // 4. CREAMOS UN ESCÁNER NUEVO
+        // Así aseguramos que no esté bloqueado o bugeado
+        _initializeScanner();
+        
+        // Activamos cooldown breve para que no dispare inmediatamente
         setState(() {
-          _isCameraActive = true;
-          // Activamos cooldown temporalmente para que no escanee solo al volver
           _scanCooldown = true; 
         });
-        
-        // Quitamos el cooldown después de un momento
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (mounted) setState(() => _scanCooldown = false);
         });
-
-        await Future.delayed(const Duration(milliseconds: 200));
-        _cameraController.start();
       }
     }
   }
@@ -209,18 +245,14 @@ class _ArScreenState extends State<ArScreen> {
     });
   }
 
-  // --- CORRECCIÓN 4: Reset con Enfriamiento ---
   void _resetScan() {
     setState(() {
       _showCard = false;
       _classData = null;
       _qrPosition = null;
-      _scanCooldown = true; // Bloqueamos temporalmente
+      _scanCooldown = true;
     });
 
-    // Desbloqueamos después de 2 segundos
-    // Esto permite que si sigues apuntando al mismo QR, tengas tiempo de moverte
-    // antes de que te vuelva a abrir la tarjeta.
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
@@ -236,9 +268,10 @@ class _ArScreenState extends State<ArScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          if (_isCameraActive)
+          // Solo mostramos MobileScanner si el controlador existe y está montado
+          if (_isScannerMounted && _cameraController != null)
             MobileScanner(
-              controller: _cameraController,
+              controller: _cameraController!, // Usamos ! porque verificamos que no es null
               onDetect: _onDetect,
               fit: BoxFit.cover,
             )
@@ -282,6 +315,7 @@ class _ArScreenState extends State<ArScreen> {
     );
   }
 
+  // --- Widgets UI (Overlay y Tarjeta) sin cambios ---
   Widget _buildArOverlay() {
     const double cardWidth = 300;
 

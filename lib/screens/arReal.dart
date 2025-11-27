@@ -21,9 +21,10 @@ class _RealArScreenState extends State<RealArScreen> {
 
   @override
   void dispose() {
-    // --- CORRECCIÓN CRÍTICA ---
-    // Comentamos esta línea porque causaba que la app se cerrara (crash)
-    // al intentar limpiar el controlador manualmente mientras se cerraba la pantalla.
+    // --- CORRECCIÓN FINAL: NO HACER DISPOSE MANUAL ---
+    // Como ya arreglamos el Scanner para que no choque con la cámara,
+    // debemos dejar esta línea COMENTADA. 
+    // Si la descomentas, la librería nativa se descarga y crashea al intentar entrar por 2da vez.
     
     // arCoreController?.dispose(); 
     
@@ -44,23 +45,19 @@ class _RealArScreenState extends State<RealArScreen> {
     final String grupo = datos['Grupo'] ?? datos['grupo'] ?? "Grupo";
     final String carrera = datos['Carrera'] ?? datos['carrera'] ?? "Carrera";
 
-    // 1. Generar textura
     final Uint8List imageBytes = await _createImageTexture(salon, materia, profesor, grupo, carrera);
 
-    // 2. Material con textura
     final material = ArCoreMaterial(
       color: Colors.white,
       textureBytes: imageBytes,
       metallic: 1.0, 
     );
 
-    // 3. Panel plano
     final panelShape = ArCoreCube(
       materials: [material],
       size: vector.Vector3(1.2, 0.8, 0.01), 
     );
 
-    // 4. Nodo en el espacio
     final panelNode = ArCoreNode(
       shape: panelShape,
       position: vector.Vector3(0, 0, -1.5),
@@ -76,7 +73,6 @@ class _RealArScreenState extends State<RealArScreen> {
     const int width = 600;
     const int height = 400;
     
-    // --- ESTILO MORADO ---
     final paint = Paint()
       ..color = AppColors.botonInicioSesion.withOpacity(0.85) 
       ..style = PaintingStyle.fill;
@@ -94,9 +90,6 @@ class _RealArScreenState extends State<RealArScreen> {
     canvas.drawRRect(rect, paint);
     canvas.drawRRect(rect, borderPaint);
 
-    // --- TEXTOS ---
-
-    // 1. SALÓN
     final salonPainter = TextPainter(
       text: TextSpan(
         text: salon,
@@ -110,7 +103,6 @@ class _RealArScreenState extends State<RealArScreen> {
       textAlign: TextAlign.center,
     );
 
-    // 2. MATERIA
     final materiaPainter = TextPainter(
       text: TextSpan(
         text: materia,
@@ -125,7 +117,6 @@ class _RealArScreenState extends State<RealArScreen> {
       maxLines: 2,
     );
 
-    // 3. DETALLES
     final detallesPainter = TextPainter(
       text: TextSpan(
         text: "$prof\n Grupo: $grupo\n $carrera",
