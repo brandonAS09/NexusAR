@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:nexus_ar/core/app_colors.dart'; // Usamos tus colores definidos
+import 'package:shared_preferences/shared_preferences.dart'; 
+import 'package:nexus_ar/core/app_colors.dart';
+import 'package:nexus_ar/services/asistencia_service.dart';
 
 class RegistroAsistenciasScreen extends StatefulWidget {
   const RegistroAsistenciasScreen({super.key});
@@ -9,49 +11,85 @@ class RegistroAsistenciasScreen extends StatefulWidget {
 }
 
 class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
-  // Variables para los filtros
-  String? selectedMes;
+  final AsistenciaService _service = AsistenciaService();
+  
+  bool _isLoading = true;
+  List<dynamic> _asistencias = [];
+  
+  // Filtros seleccionados
+  String? selectedMesNombre;
   String? selectedDia;
 
-  // Listas para los dropdowns
+  // Datos para Dropdowns
   final List<String> meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
   List<String> get dias {
-    // Generamos lista de días del 1 al 31
     return List.generate(31, (index) => (index + 1).toString());
   }
 
-  // DATOS DE PRUEBA (Mocks)
-  // Aquí es donde después conectarás tu backend.
-  // Como quitamos "Estado", solo dejamos Materia y Fecha.
-  final List<Map<String, String>> asistenciasMock = [
-    {
-      'materia': 'Patrones de Software',
-      'fecha': '2/12/2025',
-    },
-    {
-      'materia': 'Programación Avanzada',
-      'fecha': '3/12/2025',
-    },
-    {
-      'materia': 'Base de Datos II',
-      'fecha': '5/12/2025',
-    },
-    {
-      'materia': 'Inteligencia Artificial',
-      'fecha': '6/12/2025',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _cargarHistorial();
+  }
+
+  // --- FUNCIÓN PRINCIPAL CORREGIDA ---
+  Future<void> _cargarHistorial() async {
+    setState(() => _isLoading = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    
+    // 1. CAMBIO IMPORTANTE: Leemos el CORREO (String), no el ID (int)
+    final String? email = prefs.getString('email_usuario'); 
+
+    if (email == null) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Error: No se encontró sesión activa (Falta email_usuario)."),
+            backgroundColor: Colors.red,
+          )
+        );
+      }
+      return;
+    }
+
+    int? mesNumero;
+    if (selectedMesNombre != null) {
+      mesNumero = meses.indexOf(selectedMesNombre!) + 1;
+    }
+
+    int? diaNumero;
+    if (selectedDia != null) {
+      diaNumero = int.tryParse(selectedDia!);
+    }
+
+    // 2. Pasamos el EMAIL al servicio. 
+    // Tu servicio ya sabe que si es texto, debe buscar por correo.
+    final resultados = await _service.obtenerHistorial(
+      email, 
+      mes: mesNumero, 
+      dia: diaNumero
+    );
+
+    if (mounted) {
+      setState(() {
+        _asistencias = resultados;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2C2C35), // Fondo gris oscuro/negro similar a tu imagen
+      backgroundColor: const Color(0xFF2C2C35),
       appBar: AppBar(
-        backgroundColor: AppColors.botonInicioSesion, // Morado
+        backgroundColor: AppColors.botonInicioSesion,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -66,50 +104,74 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          if (selectedMesNombre != null || selectedDia != null)
+            IconButton(
+              icon: const Icon(Icons.filter_alt_off, color: Colors.black),
+              onPressed: () {
+                setState(() {
+                  selectedMesNombre = null;
+                  selectedDia = null;
+                });
+                _cargarHistorial();
+              },
+            )
+        ],
       ),
       body: Column(
         children: [
-          // SECCIÓN DE FILTROS (DROPDOWNS)
+          // SECCIÓN DE FILTROS
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildDropdown("Mes", meses, selectedMes, (val) {
-                  setState(() => selectedMes = val);
+                _buildDropdown("Mes", meses, selectedMesNombre, (val) {
+                  setState(() => selectedMesNombre = val);
+                  _cargarHistorial();
                 }),
-                _buildDropdown("Dia", dias, selectedDia, (val) {
+                _buildDropdown("Día", dias, selectedDia, (val) {
                   setState(() => selectedDia = val);
+                  _cargarHistorial();
                 }),
               ],
             ),
           ),
 
-          // LISTA DE TARJETAS
+          // LISTA DE RESULTADOS
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: asistenciasMock.length,
-              itemBuilder: (context, index) {
-                final item = asistenciasMock[index];
-                return _buildAsistenciaCard(
-                  materia: item['materia']!,
-                  fecha: item['fecha']!,
-                );
-              },
-            ),
+            child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: AppColors.botonInicioSesion))
+              : _asistencias.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "No se encontraron asistencias.",
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: _asistencias.length,
+                      itemBuilder: (context, index) {
+                        final item = _asistencias[index];
+                        return _buildAsistenciaCard(
+                          materia: item['materia'] ?? "Sin nombre",
+                          // Si la fecha viene nula, mostramos un placeholder
+                          fecha: item['fecha'] ?? "--/--/----",
+                        );
+                      },
+                    ),
           ),
         ],
       ),
     );
   }
 
-  // WIDGET DEL DROPDOWN PERSONALIZADO
   Widget _buildDropdown(String hint, List<String> items, String? value, Function(String?) onChanged) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
-        color: AppColors.botonInicioSesion, // Fondo Morado
+        color: AppColors.botonInicioSesion,
         borderRadius: BorderRadius.circular(10),
       ),
       width: 140,
@@ -121,7 +183,7 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
             style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           ),
           icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
-          dropdownColor: Colors.white, // Fondo del menú desplegable
+          dropdownColor: Colors.white,
           style: const TextStyle(color: Colors.black, fontSize: 16),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
@@ -135,13 +197,12 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
     );
   }
 
-  // WIDGET DE LA TARJETA DE ASISTENCIA
   Widget _buildAsistenciaCard({required String materia, required String fecha}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.botonInicioSesion, // Fondo Morado
+        color: AppColors.botonInicioSesion,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -154,7 +215,6 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ÍCONO (Libro abierto o similar)
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -163,10 +223,7 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
             ),
             child: const Icon(Icons.menu_book, color: Colors.black, size: 24),
           ),
-          
           const SizedBox(width: 15),
-
-          // TEXTOS
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +231,6 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
                 _buildInfoRow(Icons.class_, "Materia:", materia),
                 const SizedBox(height: 5),
                 _buildInfoRow(Icons.access_time, "Fecha:", fecha),
-                // Ya no mostramos "Estado" como pediste
               ],
             ),
           ),
@@ -183,12 +239,10 @@ class _RegistroAsistenciasScreenState extends State<RegistroAsistenciasScreen> {
     );
   }
 
-  // Helper para las filas de texto dentro de la tarjeta
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Usamos RichText para mezclar negritas y texto normal
         Expanded(
           child: RichText(
             text: TextSpan(

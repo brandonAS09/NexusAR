@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:arcore_flutter_plugin/arcore_flutter_plugin.dart';
 import 'package:vector_math/vector_math_64.dart' as vector;
-import 'package:nexus_ar/core/app_colors.dart'; // Importante para los colores
+import 'package:nexus_ar/core/app_colors.dart'; 
 
 class RealArScreen extends StatefulWidget {
   final Map<String, dynamic> classData;
@@ -21,7 +21,12 @@ class _RealArScreenState extends State<RealArScreen> {
 
   @override
   void dispose() {
-    arCoreController?.dispose();
+    // --- CORRECCIÓN CRÍTICA ---
+    // Comentamos esta línea porque causaba que la app se cerrara (crash)
+    // al intentar limpiar el controlador manualmente mientras se cerraba la pantalla.
+    
+    // arCoreController?.dispose(); 
+    
     super.dispose();
   }
 
@@ -33,15 +38,13 @@ class _RealArScreenState extends State<RealArScreen> {
   Future<void> _addInfoPanel() async {
     final datos = widget.classData['datos'] ?? {};
     
-    // Extraemos los datos con seguridad (soportando mayúsculas/minúsculas según tu BD)
-    // Ajusta las llaves ['nombre_salon'] etc. si tu backend las manda diferente
     final String salon = datos['nombre_salon'] ?? datos['salon'] ?? "Salón";
     final String materia = datos['materia'] ?? "Materia";
     final String profesor = datos['NombreProfesor'] ?? datos['profesor'] ?? "Profesor";
     final String grupo = datos['Grupo'] ?? datos['grupo'] ?? "Grupo";
     final String carrera = datos['Carrera'] ?? datos['carrera'] ?? "Carrera";
 
-    // 1. Generar textura con TODOS los datos y color morado
+    // 1. Generar textura
     final Uint8List imageBytes = await _createImageTexture(salon, materia, profesor, grupo, carrera);
 
     // 2. Material con textura
@@ -54,7 +57,7 @@ class _RealArScreenState extends State<RealArScreen> {
     // 3. Panel plano
     final panelShape = ArCoreCube(
       materials: [material],
-      size: vector.Vector3(1.2, 0.8, 0.01), // Un poco más grande para que quepa todo
+      size: vector.Vector3(1.2, 0.8, 0.01), 
     );
 
     // 4. Nodo en el espacio
@@ -70,17 +73,16 @@ class _RealArScreenState extends State<RealArScreen> {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     
-    // Aumentamos resolución para mejor calidad
     const int width = 600;
     const int height = 400;
     
     // --- ESTILO MORADO ---
     final paint = Paint()
-      ..color = AppColors.botonInicioSesion.withOpacity(0.85) // Morado translúcido
+      ..color = AppColors.botonInicioSesion.withOpacity(0.85) 
       ..style = PaintingStyle.fill;
     
     final borderPaint = Paint()
-      ..color = Colors.white // Borde blanco para resaltar
+      ..color = Colors.white 
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8;
 
@@ -94,7 +96,7 @@ class _RealArScreenState extends State<RealArScreen> {
 
     // --- TEXTOS ---
 
-    // 1. SALÓN (Cabecera)
+    // 1. SALÓN
     final salonPainter = TextPainter(
       text: TextSpan(
         text: salon,
@@ -108,12 +110,12 @@ class _RealArScreenState extends State<RealArScreen> {
       textAlign: TextAlign.center,
     );
 
-    // 2. MATERIA (Título Principal)
+    // 2. MATERIA
     final materiaPainter = TextPainter(
       text: TextSpan(
         text: materia,
         style: const TextStyle(
-          color: Colors.cyanAccent, // Resaltado neón
+          color: Colors.cyanAccent, 
           fontSize: 50, 
           fontWeight: FontWeight.bold
         ),
@@ -123,42 +125,36 @@ class _RealArScreenState extends State<RealArScreen> {
       maxLines: 2,
     );
 
-    // 3. DETALLES (Profesor, Grupo, Carrera)
+    // 3. DETALLES
     final detallesPainter = TextPainter(
       text: TextSpan(
         text: "$prof\n Grupo: $grupo\n $carrera",
         style: const TextStyle(
           color: Colors.white, 
           fontSize: 28,
-          height: 1.5 // Espaciado entre líneas
+          height: 1.5 
         ),
       ),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
 
-    // Layout (Calcular posiciones)
     salonPainter.layout(maxWidth: width - 40.0);
     materiaPainter.layout(maxWidth: width - 40.0);
     detallesPainter.layout(maxWidth: width - 40.0);
 
-    // Dibujar en el Canvas (Centrado verticalmente)
-    double currentY = 40; // Margen superior
+    double currentY = 40; 
 
-    // Dibujar Salón
     salonPainter.paint(canvas, Offset((width - salonPainter.width) / 2, currentY));
     currentY += salonPainter.height + 20;
 
-    // Dibujar Línea divisoria
     final linePaint = Paint()..color = Colors.white30..strokeWidth = 2;
     canvas.drawLine(Offset(50, currentY), Offset(width - 50.0, currentY), linePaint);
     currentY += 20;
 
-    // Dibujar Materia
     materiaPainter.paint(canvas, Offset((width - materiaPainter.width) / 2, currentY));
     currentY += materiaPainter.height + 20;
 
-    // Dibujar Detalles
     detallesPainter.paint(canvas, Offset((width - detallesPainter.width) / 2, currentY));
 
     final picture = recorder.endRecording();

@@ -1,4 +1,5 @@
-import 'dart:ui'; // Para el efecto borroso (Glassmorphism)
+import 'dart:async'; // Necesario para los timers
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nexus_ar/core/app_colors.dart';
@@ -14,19 +15,32 @@ class ArScreen extends StatefulWidget {
 
 class _ArScreenState extends State<ArScreen> {
   final ArService _arService = ArService();
+  
+  // --- CORRECCIÓN 1: DetectionSpeed.normal ---
+  // Cambiamos a 'normal' para que permita re-escanear el mismo código.
+  // Nosotros controlaremos la repetición manual con variables.
   final MobileScannerController _cameraController = MobileScannerController(
-    detectionSpeed:
-        DetectionSpeed.noDuplicates, // Evita disparar mil veces el mismo código
+    detectionSpeed: DetectionSpeed.normal, 
     returnImage: false,
+    autoStart: false, 
   );
 
   bool _isLoading = false;
   bool _showCard = false;
   bool _isCameraActive = true;
+  
+  // Variable para evitar lecturas múltiples seguidas
+  bool _scanCooldown = false; 
 
   Map<String, dynamic>? _classData;
   Offset? _qrPosition;
   Size? _cameraImageSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _cameraController.start();
+  }
 
   @override
   void dispose() {
@@ -35,6 +49,10 @@ class _ArScreenState extends State<ArScreen> {
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
+    // --- CORRECCIÓN 2: Filtro manual ---
+    // Si ya mostramos carta o estamos en enfriamiento, ignoramos el evento
+    if (_showCard || _scanCooldown) return;
+
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isEmpty) return;
 
@@ -45,19 +63,13 @@ class _ArScreenState extends State<ArScreen> {
 
     _cameraImageSize = capture.size;
 
-    // Intentamos calcular la posición AR
     if (barcode.corners != null && barcode.corners!.isNotEmpty) {
       final Offset center = _calculateQrCenter(barcode.corners!);
       _updateCardPosition(center);
     }
 
-    if (_showCard) return;
-
     print("🔍 SCANNER: Código detectado: $code");
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Si después de intentar calcular, la posición sigue siendo null (falló el cálculo),
-    // forzamos que aparezca en el centro de la pantalla.
     if (_qrPosition == null) {
       final screenSize = MediaQuery.of(context).size;
       _qrPosition = Offset(screenSize.width / 2, screenSize.height / 2);
@@ -99,9 +111,7 @@ class _ArScreenState extends State<ArScreen> {
     return Offset(xSum / corners.length, ySum / corners.length);
   }
 
-  // --- CORRECCIÓN DEL ERROR NaN AQUÍ ---
   void _updateCardPosition(Offset cameraPoint) {
-    // Si no hay tamaño de imagen o es 0, salimos para evitar división por cero
     if (_cameraImageSize == null ||
         _cameraImageSize!.width <= 0 ||
         _cameraImageSize!.height <= 0) {
@@ -113,12 +123,9 @@ class _ArScreenState extends State<ArScreen> {
     double imgWidth = _cameraImageSize!.width;
     double imgHeight = _cameraImageSize!.height;
 
-    // Calculamos escala protegiéndonos de infinitos
     double scaleX = screenSize.width / imgWidth;
     double scaleY = screenSize.height / imgHeight;
 
-    // En iOS/Android a veces la imagen viene rotada, pero mobile_scanner suele manejarlo.
-    // Usamos el factor de escala mayor para cubrir (BoxFit.cover logic)
     double scale = (scaleX > scaleY) ? scaleX : scaleY;
 
     if (scale.isInfinite || scale.isNaN) return;
@@ -129,10 +136,8 @@ class _ArScreenState extends State<ArScreen> {
     final double screenX = cameraPoint.dx * scale + offsetX;
     final double screenY = cameraPoint.dy * scale + offsetY;
 
-    // Verificación final de NaN antes de actualizar UI
     if (screenX.isNaN || screenY.isNaN) return;
 
-    // Solo actualizamos si el cambio es significativo (optimización)
     if (_qrPosition == null ||
         (_qrPosition! - Offset(screenX, screenY)).distance > 5) {
       setState(() {
@@ -158,11 +163,26 @@ class _ArScreenState extends State<ArScreen> {
         ),
       );
 
+      // --- CORRECCIÓN 3: Pausa Crítica al Volver ---
       if (mounted) {
+        debugPrint("🔄 Regresando de AR...");
+        
+        // Esta espera es VITAL para que la app no se cierre.
+        // ARCore necesita tiempo para soltar la cámara antes de que Scanner la tome.
+        await Future.delayed(const Duration(milliseconds: 800));
+
         setState(() {
           _isCameraActive = true;
+          // Activamos cooldown temporalmente para que no escanee solo al volver
+          _scanCooldown = true; 
         });
-        await Future.delayed(const Duration(milliseconds: 100));
+        
+        // Quitamos el cooldown después de un momento
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) setState(() => _scanCooldown = false);
+        });
+
+        await Future.delayed(const Duration(milliseconds: 200));
         _cameraController.start();
       }
     }
@@ -189,11 +209,24 @@ class _ArScreenState extends State<ArScreen> {
     });
   }
 
+  // --- CORRECCIÓN 4: Reset con Enfriamiento ---
   void _resetScan() {
     setState(() {
       _showCard = false;
       _classData = null;
       _qrPosition = null;
+      _scanCooldown = true; // Bloqueamos temporalmente
+    });
+
+    // Desbloqueamos después de 2 segundos
+    // Esto permite que si sigues apuntando al mismo QR, tengas tiempo de moverte
+    // antes de que te vuelva a abrir la tarjeta.
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _scanCooldown = false;
+        });
+      }
     });
   }
 
@@ -210,7 +243,7 @@ class _ArScreenState extends State<ArScreen> {
               fit: BoxFit.cover,
             )
           else
-            const Center(child: CircularProgressIndicator()),
+            const Center(child: CircularProgressIndicator(color: AppColors.botonInicioSesion)),
 
           Positioned(
             top: 50,
@@ -224,7 +257,6 @@ class _ArScreenState extends State<ArScreen> {
             ),
           ),
 
-          // Protegemos la renderización del overlay
           if (_showCard &&
               _qrPosition != null &&
               !_qrPosition!.dx.isNaN &&
@@ -253,7 +285,6 @@ class _ArScreenState extends State<ArScreen> {
   Widget _buildArOverlay() {
     const double cardWidth = 300;
 
-    // Aseguramos que las coordenadas sean finitas
     double topPos = (_qrPosition!.dy - 180).clamp(
       0,
       MediaQuery.of(context).size.height - 200,
@@ -309,7 +340,7 @@ class _ArScreenState extends State<ArScreen> {
     );
   }
 
-Widget _buildCardContent() {
+  Widget _buildCardContent() {
     if (_classData == null || _classData!.containsKey('error')) {
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -339,7 +370,6 @@ Widget _buildCardContent() {
         children: [
           const Icon(Icons.event_busy, color: Colors.white, size: 40),
           const SizedBox(height: 5),
-          // Usamos el mensaje que viene del servidor si existe
           Text(
             _classData!['mensaje'] ?? "Sin clase en este momento", 
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -357,9 +387,6 @@ Widget _buildCardContent() {
 
     final datos = _classData!['datos'];
     
-    // --- CORRECCIÓN DE LLAVES (KEYS) AQUÍ ---
-    // Deben ser IDÉNTICAS a lo que imprimió el log:
-    // "nombre_salon", "materia", "NombreProfesor", "Grupo", "Carrera"
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,11 +399,11 @@ Widget _buildCardContent() {
         ),
         const Divider(color: Colors.white30, height: 15),
         
-        _infoRow(Icons.room, "Salón:", datos['nombre_salon'] ?? 'N/A'), // Era 'salon'
-        _infoRow(Icons.book, "Materia:", datos['materia'] ?? 'N/A'), // Ok
-        _infoRow(Icons.person, "Profesor:", datos['NombreProfesor'] ?? 'N/A'), // Era 'profesor'
-        _infoRow(Icons.group, "Grupo:", datos['Grupo'] ?? 'N/A'), // Era 'grupo' (minúscula)
-        _infoRow(Icons.school, "Carrera:", datos['Carrera'] ?? 'N/A'), // Era 'carrera' (minúscula)
+        _infoRow(Icons.room, "Salón:", datos['nombre_salon'] ?? 'N/A'),
+        _infoRow(Icons.book, "Materia:", datos['materia'] ?? 'N/A'),
+        _infoRow(Icons.person, "Profesor:", datos['NombreProfesor'] ?? 'N/A'),
+        _infoRow(Icons.group, "Grupo:", datos['Grupo'] ?? 'N/A'),
+        _infoRow(Icons.school, "Carrera:", datos['Carrera'] ?? 'N/A'),
         
         const SizedBox(height: 20),
         
