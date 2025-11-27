@@ -3,17 +3,18 @@ const router = express.Router();
 const db = require("../db");
 
 // --- FUNCIONES AUXILIARES ---
-async function registrarAsistenciaCompleta(id_usuario,id_materia){
-  try{
+async function registrarAsistenciaCompleta(id_usuario, id_materia) {
+  try {
     await db.query(
-      `INSERT INTO asistencias_completas (id_usuario,id_materia,fecha)
-      VALUES(?,?,NOW())`,
-      [id_usuario,id_materia]
-    )
-  }catch(error){
-    console.error("Error al registrar asistencia completa",error);
+      `INSERT INTO asistencias_completas (id_usuario, id_materia, fecha)
+       VALUES (?, ?, DATE_SUB(NOW(), INTERVAL 8 HOUR))`,
+      [id_usuario, id_materia]
+    );
+  } catch (error) {
+    console.error("Error al registrar asistencia completa", error);
   }
 }
+
 
 async function romperRacha(id_usuario,tipo){
   const colRacha = tipo ==='puntualidad' ? 'racha_puntualidad': 'racha_asistencia';
